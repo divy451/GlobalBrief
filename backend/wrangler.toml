@@ -1,0 +1,8 @@
+name = "news-api"
+type = "javascript"
+account_id = "f0233b6ef0eae476b97dc6abc5a8c6de"
+workers_dev = true
+[build]
+command = "bun install"
+[build.upload]
+format = "service-worker"
