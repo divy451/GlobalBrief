@@ -26,7 +26,7 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news${query.toString() ? '?' + query : ''}`, {
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/news${query.toString() ? '?' + query : ''}`, {
     headers,
   });
   if (!response.ok) {
