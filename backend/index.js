@@ -153,6 +153,11 @@ export default {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     } finally {
+      // It's generally not recommended to close the client on every request in a serverless function
+      // as it adds overhead. Cloudflare Workers handle connection pooling.
+      // However, if you explicitly want to ensure it's closed (e.g., for testing or specific environment),
+      // keep it. For production serverless, often it's omitted.
+      // For now, keeping it as per your original code.
       await client.close();
     }
   },

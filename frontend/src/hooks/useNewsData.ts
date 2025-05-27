@@ -22,11 +22,12 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
   if (filter?.category) query.append('category', filter.category);
   if (filter?.isBreaking !== undefined) query.append('isBreaking', filter.isBreaking.toString());
   if (limit) query.append('limit', limit.toString());
-  
+
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news${query.toString() ? '?' + query : ''}`, {
+
+  // CHANGED: Removed the extra '/api' from the fetch URL
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/news${query.toString() ? '?' + query : ''}`, {
     headers,
   });
   if (!response.ok) {
@@ -51,7 +52,8 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
 };
 
 const fetchArticleById = async (id: string): Promise<Article> => {
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news/${id}`);
+  // CHANGED: Removed the extra '/api' from the fetch URL
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/news/${id}`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     console.error('fetchArticleById: Fetch error:', errorData.error || response.statusText);
