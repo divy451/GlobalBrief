@@ -1,4 +1,4 @@
-// useNewsData.tsx (original content you provided, assuming it correctly appends '/api/news')
+// useNewsData.tsx (As provided in our second-to-last conversation, where it appends '/api/news')
 
 import { useQuery } from "@tanstack/react-query";
 import { Article, Category, BreakingNewsItem } from "../types/news";
@@ -28,7 +28,7 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  // This will now correctly form https://news-api.poddara766.workers.dev/api/news
+  // This will form https://news-api.poddara766.workers.dev/api/news
   const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news${query.toString() ? '?' + query : ''}`, {
     headers,
   });
@@ -54,7 +54,7 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
 };
 
 const fetchArticleById = async (id: string): Promise<Article> => {
-  // This will now correctly form https://news-api.poddara766.workers.dev/api/news/:id
+  // This will form https://news-api.poddara766.workers.dev/api/news/:id
   const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news/${id}`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

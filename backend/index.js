@@ -1,3 +1,5 @@
+// index.js (Cloudflare Worker) - Reverted to original state
+
 import { MongoClient, ObjectId } from 'mongodb';
 import { SignJWT, jwtVerify } from 'jose';
 import { hash, compare } from 'bcryptjs';
@@ -29,9 +31,7 @@ export default {
         }
       };
 
-      // Handle POST /auth/login
-      // This path is still expected to be /api/auth/login if your auth logic is separate
-      // If frontend sends /auth/login, change this too. Assuming frontend sends /api/auth/login
+      // Handle POST /api/auth/login (Original path)
       if (url.pathname === '/api/auth/login' && method === 'POST') {
         const { username, password } = await request.json();
         const user = await usersCollection.findOne({ username });
@@ -47,8 +47,8 @@ export default {
         });
       }
 
-      // Handle GET /news (CHANGED from /api/news)
-      if (url.pathname === '/news' && method === 'GET') {
+      // Handle GET /api/news (Original path)
+      if (url.pathname === '/api/news' && method === 'GET') {
         const query = {};
         const urlQuery = url.searchParams;
         if (urlQuery.has('category')) query.category = urlQuery.get('category');
@@ -61,11 +61,11 @@ export default {
         });
       }
 
-      // Handle GET /news/:id (CHANGED from /api/news/:id)
-      if (url.pathname.startsWith('/news/') && method === 'GET') {
-        // Correctly extract ID: if pathname is /news/123, split gives ["", "news", "123"]
-        const id = url.pathname.split('/')[2];
-        if (!id) { // Added a check for missing ID
+      // Handle GET /api/news/:id (Original path)
+      if (url.pathname.startsWith('/api/news/') && method === 'GET') {
+        // Original ID extraction: split gives ["", "api", "news", "id"] -> index 3
+        const id = url.pathname.split('/')[3];
+        if (!id) { // Added null check for robustness
           return new Response(JSON.stringify({ error: 'Article ID is required' }), {
             status: 400,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
@@ -83,8 +83,8 @@ export default {
         });
       }
 
-      // Handle POST /news (authenticated) (CHANGED from /api/news)
-      if (url.pathname === '/news' && method === 'POST') {
+      // Handle POST /api/news (authenticated) (Original path)
+      if (url.pathname === '/api/news' && method === 'POST') {
         await authenticateToken(request.headers);
         const { title, content, category, author, excerpt, isBreaking } = await request.json();
         if (!title || !content || !category) {
@@ -110,12 +110,12 @@ export default {
         });
       }
 
-      // Handle PUT /news/:id (authenticated) (CHANGED from /api/news/:id)
-      if (url.pathname.startsWith('/news/') && method === 'PUT') {
+      // Handle PUT /api/news/:id (authenticated) (Original path)
+      if (url.pathname.startsWith('/api/news/') && method === 'PUT') {
         await authenticateToken(request.headers);
-        // Correctly extract ID: if pathname is /news/123, split gives ["", "news", "123"]
-        const id = url.pathname.split('/')[2];
-        if (!id) { // Added a check for missing ID
+        // Original ID extraction: split gives ["", "api", "news", "id"] -> index 3
+        const id = url.pathname.split('/')[3];
+        if (!id) { // Added null check for robustness
           return new Response(JSON.stringify({ error: 'Article ID is required' }), {
             status: 400,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
@@ -146,12 +146,12 @@ export default {
         });
       }
 
-      // Handle DELETE /news/:id (authenticated) (CHANGED from /api/news/:id)
-      if (url.pathname.startsWith('/news/') && method === 'DELETE') {
+      // Handle DELETE /api/news/:id (authenticated) (Original path)
+      if (url.pathname.startsWith('/api/news/') && method === 'DELETE') {
         await authenticateToken(request.headers);
-        // Correctly extract ID: if pathname is /news/123, split gives ["", "news", "123"]
-        const id = url.pathname.split('/')[2];
-        if (!id) { // Added a check for missing ID
+        // Original ID extraction: split gives ["", "api", "news", "id"] -> index 3
+        const id = url.pathname.split('/')[3];
+        if (!id) { // Added null check for robustness
           return new Response(JSON.stringify({ error: 'Article ID is required' }), {
             status: 400,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
@@ -169,6 +169,7 @@ export default {
         });
       }
 
+      // Default catch-all for unknown paths
       return new Response('Not Found', { status: 404 });
     } catch (error) {
       return new Response(JSON.stringify({ error: error.message || 'Server Error' }), {
