@@ -14,6 +14,22 @@ interface ApiArticle {
   isBreaking?: boolean;
 }
 
+// Fallback articles in case API fails
+const fallbackArticles: Article[] = [
+  {
+    id: "fallback-1",
+    title: "Fallback News Article",
+    content: "This is a fallback article displayed because the API failed to load articles.",
+    category: "General",
+    date: new Date().toISOString(),
+    author: "System",
+    image: "https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?w=400",
+    excerpt: "Fallback article due to API failure.",
+    isBreaking: false,
+    path: "/article/fallback-1",
+  },
+];
+
 const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean }, limit?: number, isPublic: boolean = false): Promise<Article[]> => {
   const token = isPublic ? null : localStorage.getItem('admin_token');
   console.log('fetchArticles: Fetching with token:', token);
@@ -28,47 +44,72 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const apiUrl = import.meta.env.VITE_API_URL || 'https://news-api.poddara766.workers.dev/api';
-  const response = await fetch(`${apiUrl}/news${query.toString() ? '?' + query : ''}`, { headers });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Failed to fetch articles');
+  const fullUrl = `${apiUrl}/news${query.toString() ? '?' + query : ''}`;
+  console.log('fetchArticles: Request URL:', fullUrl);
+
+  try {
+    const response = await fetch(fullUrl, { headers });
+    console.log('fetchArticles: Response status:', response.status, 'Headers:', Object.fromEntries(response.headers.entries()));
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('fetchArticles: Error response:', errorData);
+      throw new Error(errorData.error || `Failed to fetch articles: ${response.statusText} (${response.status})`);
+    }
+    const articles: ApiArticle[] = await response.json();
+    console.log('fetchArticles: Articles fetched:', articles);
+    if (!articles || articles.length === 0) {
+      console.warn('fetchArticles: No articles returned, using fallback.');
+      return fallbackArticles;
+    }
+    return articles.map((article: ApiArticle) => ({
+      id: article._id,
+      title: article.title || 'Untitled',
+      category: article.category || 'Uncategorized',
+      date: article.date ? new Date(article.date).toISOString() : new Date().toISOString(),
+      author: article.author || 'Unknown',
+      content: article.content || '',
+      image: article.image ? `${apiUrl}/images/?url=${encodeURIComponent(article.image)}` : '',
+      excerpt: article.excerpt || '',
+      isBreaking: article.isBreaking || false,
+      path: `/article/${article._id}`,
+    }));
+  } catch (error) {
+    console.error('fetchArticles: Fetch failed:', error.message);
+    throw error;
   }
-  const articles: ApiArticle[] = await response.json();
-  console.log('fetchArticles: Articles fetched:', articles);
-  return articles.map((article: ApiArticle) => ({
-    id: article._id,
-    title: article.title || 'Untitled',
-    category: article.category || 'Uncategorized',
-    date: article.date ? new Date(article.date).toISOString() : new Date().toISOString(),
-    author: article.author || 'Unknown',
-    content: article.content || '',
-    image: article.image ? `${apiUrl}/images/?url=${encodeURIComponent(article.image)}` : '',
-    excerpt: article.excerpt || '',
-    isBreaking: article.isBreaking || false,
-    path: `/article/${article._id}`,
-  }));
 };
 
 const fetchArticleById = async (id: string): Promise<Article> => {
   const apiUrl = import.meta.env.VITE_API_URL || 'https://news-api.poddara766.workers.dev/api';
-  const response = await fetch(`${apiUrl}/news/${id}`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Article not found');
+  const fullUrl = `${apiUrl}/news/${id}`;
+  console.log('fetchArticleById: Request URL:', fullUrl);
+
+  try {
+    const response = await fetch(fullUrl);
+    console.log('fetchArticleById: Response status:', response.status, 'Headers:', Object.fromEntries(response.headers.entries()));
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('fetchArticleById: Error response:', errorData);
+      throw new Error(errorData.error || `Article not found: ${response.statusText} (${response.status})`);
+    }
+    const article: ApiArticle = await response.json();
+    console.log('fetchArticleById: Article fetched:', article);
+    return {
+      id: article._id,
+      title: article.title || 'Untitled',
+      category: article.category || 'Uncategorized',
+      date: article.date ? new Date(article.date).toISOString() : new Date().toISOString(),
+      author: article.author || 'Unknown',
+      content: article.content || '',
+      image: article.image ? `${apiUrl}/images/?url=${encodeURIComponent(article.image)}` : '',
+      excerpt: article.excerpt || '',
+      isBreaking: article.isBreaking || false,
+      path: `/article/${article._id}`,
+    };
+  } catch (error) {
+    console.error('fetchArticleById: Fetch failed:', error.message);
+    throw error;
   }
-  const article: ApiArticle = await response.json();
-  return {
-    id: article._id,
-    title: article.title || 'Untitled',
-    category: article.category || 'Uncategorized',
-    date: article.date ? new Date(article.date).toISOString() : new Date().toISOString(),
-    author: article.author || 'Unknown',
-    content: article.content || '',
-    image: article.image ? `${apiUrl}/images/?url=${encodeURIComponent(article.image)}` : '',
-    excerpt: article.excerpt || '',
-    isBreaking: article.isBreaking || false,
-    path: `/article/${article._id}`,
-  };
 };
 
 const fetchBreakingNews = async (): Promise<BreakingNewsItem[]> => {
@@ -104,11 +145,21 @@ export function useBreakingNews() {
   return useQuery<BreakingNewsItem[], Error>({
     queryKey: ["breakingNews"],
     queryFn: fetchBreakingNews,
-    retry: 3, // Increased retries
-    retryDelay: 1000, // Delay between retries
+    retry: 3,
+    retryDelay: 1000,
     onError: (error) => {
       console.error('Error fetching breaking news:', error.message);
     },
+    // Use fallback data if fetch fails
+    placeholderData: fallbackArticles.map(article => ({
+      id: article.id,
+      title: article.title,
+      category: article.category,
+      date: article.date,
+      image: article.image,
+      path: article.path,
+      isBreaking: article.isBreaking,
+    })),
   });
 }
 
@@ -118,6 +169,10 @@ export function useFeaturedArticles() {
     queryFn: fetchFeaturedArticles,
     retry: 3,
     retryDelay: 1000,
+    onError: (error) => {
+      console.error('Error fetching featured articles:', error.message);
+    },
+    placeholderData: fallbackArticles,
   });
 }
 
@@ -140,6 +195,7 @@ export function useCategoryArticles(category: string, limit?: number) {
     onError: (error) => {
       console.error(`Error fetching ${category} articles:`, error.message);
     },
+    placeholderData: fallbackArticles,
   });
 }
 
@@ -149,6 +205,10 @@ export function useTrendingArticles(limit?: number) {
     queryFn: () => fetchTrendingArticles(limit),
     retry: 3,
     retryDelay: 1000,
+    onError: (error) => {
+      console.error('Error fetching trending articles:', error.message);
+    },
+    placeholderData: fallbackArticles,
   });
 }
 
@@ -182,5 +242,6 @@ export function useNewsData() {
     onError: (error) => {
       console.error('Error fetching news data:', error.message);
     },
+    placeholderData: fallbackArticles,
   });
 }

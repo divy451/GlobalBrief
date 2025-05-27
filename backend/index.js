@@ -112,6 +112,7 @@ export default {
         try {
           requestBody = await request.json();
         } catch (e) {
+          console.error('Login: Invalid JSON body:', e.message);
           return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
             status: 400,
             headers: corsHeaders,
@@ -120,6 +121,7 @@ export default {
 
         const { username, password } = requestBody;
         if (!username || !password) {
+          console.error('Login: Missing username or password');
           return new Response(JSON.stringify({ error: 'Username and password required' }), {
             status: 400,
             headers: corsHeaders,
@@ -128,6 +130,7 @@ export default {
 
         const user = await usersCollection.findOne({ username });
         if (!user) {
+          console.error(`Login: User not found: ${username}`);
           return new Response(JSON.stringify({ error: 'Invalid credentials' }), {
             status: 401,
             headers: corsHeaders,
@@ -136,6 +139,7 @@ export default {
 
         const isMatch = await compare(password, user.password);
         if (!isMatch) {
+          console.error(`Login: Password mismatch for user: ${username}`);
           return new Response(JSON.stringify({ error: 'Invalid credentials' }), {
             status: 401,
             headers: corsHeaders,
@@ -148,6 +152,7 @@ export default {
           .setExpirationTime('1h')
           .sign(JWT_SECRET);
 
+        console.log(`Login: Token generated for user: ${username}`);
         return new Response(JSON.stringify({ token }), {
           status: 200,
           headers: corsHeaders,
@@ -156,6 +161,7 @@ export default {
 
       // Fetch all articles
       if (url.pathname === '/api/news' && method === 'GET') {
+        console.log('Fetching articles with query:', url.searchParams.toString());
         const query = {};
         const urlQuery = url.searchParams;
         if (urlQuery.has('category')) query.category = urlQuery.get('category');
@@ -168,6 +174,7 @@ export default {
         }
 
         const articles = await articlesQuery.toArray();
+        console.log(`Fetched ${articles.length} articles:`, articles.map(a => a._id));
         return new Response(JSON.stringify(articles), {
           status: 200,
           headers: corsHeaders,
@@ -178,6 +185,7 @@ export default {
       if (url.pathname.startsWith('/api/news/') && method === 'GET' && url.pathname.split('/').length === 4) {
         const id = url.pathname.split('/')[3];
         if (!ObjectId.isValid(id)) {
+          console.error(`Fetch article: Invalid ID: ${id}`);
           return new Response(JSON.stringify({ error: 'Invalid article ID' }), {
             status: 400,
             headers: corsHeaders,
@@ -185,11 +193,13 @@ export default {
         }
         const article = await articlesCollection.findOne({ _id: new ObjectId(id) });
         if (!article) {
+          console.error(`Fetch article: Article not found: ${id}`);
           return new Response(JSON.stringify({ error: 'Article not found' }), {
             status: 404,
             headers: corsHeaders,
           });
         }
+        console.log(`Fetched article: ${id}`);
         return new Response(JSON.stringify(article), {
           status: 200,
           headers: corsHeaders,
@@ -203,6 +213,7 @@ export default {
         try {
           articleData = await request.json();
         } catch (e) {
+          console.error('Create article: Invalid JSON body:', e.message);
           return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
             status: 400,
             headers: corsHeaders,
@@ -211,6 +222,7 @@ export default {
 
         const { title, content, category, author, excerpt, isBreaking } = articleData;
         if (!title || !content || !category) {
+          console.error('Create article: Missing required fields');
           return new Response(JSON.stringify({ error: 'Title, content, and category required' }), {
             status: 400,
             headers: corsHeaders,
@@ -227,6 +239,7 @@ export default {
         };
         const result = await articlesCollection.insertOne(newArticleData);
         const newArticle = { _id: result.insertedId, ...newArticleData };
+        console.log(`Created article: ${result.insertedId}`);
         return new Response(JSON.stringify(newArticle), {
           status: 201,
           headers: corsHeaders,
@@ -238,6 +251,7 @@ export default {
         await authenticateToken(request.headers);
         const id = url.pathname.split('/')[3];
         if (!ObjectId.isValid(id)) {
+          console.error(`Update article: Invalid ID: ${id}`);
           return new Response(JSON.stringify({ error: 'Invalid article ID' }), {
             status: 400,
             headers: corsHeaders,
@@ -248,6 +262,7 @@ export default {
         try {
           updateFields = await request.json();
         } catch (e) {
+          console.error(`Update article: Invalid JSON body for ID ${id}:`, e.message);
           return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
             status: 400,
             headers: corsHeaders,
@@ -263,11 +278,13 @@ export default {
           { returnDocument: 'after' }
         );
         if (!result) {
+          console.error(`Update article: Article not found: ${id}`);
           return new Response(JSON.stringify({ error: 'Article not found' }), {
             status: 404,
             headers: corsHeaders,
           });
         }
+        console.log(`Updated article: ${id}`);
         return new Response(JSON.stringify(result), {
           status: 200,
           headers: corsHeaders,
@@ -279,6 +296,7 @@ export default {
         await authenticateToken(request.headers);
         const id = url.pathname.split('/')[3];
         if (!ObjectId.isValid(id)) {
+          console.error(`Delete article: Invalid ID: ${id}`);
           return new Response(JSON.stringify({ error: 'Invalid article ID' }), {
             status: 400,
             headers: corsHeaders,
@@ -287,24 +305,27 @@ export default {
 
         const result = await articlesCollection.deleteOne({ _id: new ObjectId(id) });
         if (result.deletedCount === 0) {
+          console.error(`Delete article: Article not found: ${id}`);
           return new Response(JSON.stringify({ error: 'Article not found' }), {
             status: 404,
             headers: corsHeaders,
           });
         }
+        console.log(`Deleted article: ${id}`);
         return new Response(JSON.stringify({ message: 'Article deleted' }), {
           status: 200,
           headers: corsHeaders,
         });
       }
 
+      console.error(`Route not found: ${method} ${url.pathname}`);
       return new Response(JSON.stringify({ error: 'Not Found' }), {
         status: 404,
         headers: corsHeaders,
       });
 
     } catch (error) {
-      console.error('Error:', error.message);
+      console.error('Global error:', error.message, error.stack);
       if (error.message.includes('Cannot use a session that has ended')) {
         isConnected = false;
         return new Response(JSON.stringify({ error: 'Database session error. Retry.' }), {
