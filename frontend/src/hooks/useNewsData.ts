@@ -26,7 +26,7 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   
-  const apiUrl = 'https://news-api.poddara766.workers.dev';
+  const apiUrl = 'https://briefly-backend-we12.onrender.com/';
   const response = await fetch(`${apiUrl}/api/news${query.toString() ? '?' + query : ''}`, {
     headers,
   });
