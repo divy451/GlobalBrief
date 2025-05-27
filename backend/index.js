@@ -1,171 +1,159 @@
-import { MongoClient } from 'mongodb';
-import jwt from 'jsonwebtoken';
+import { MongoClient, ObjectId } from 'mongodb';
+import { SignJWT, jwtVerify } from 'jose';
+import { hash, compare } from 'bcryptjs';
 
-const JWT_SECRET = 'your_jwt_secret'; // Replace with your secret
-
-const allowedOrigin = 'https://briefly-6ef.pages.dev';
-const corsHeaders = {
-  'Access-Control-Allow-Origin': allowedOrigin,
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Max-Age': '86400',
-  'Content-Type': 'application/json',
-};
-
-let client = null;
-let db = null;
-
-async function connectToDatabase() {
-  if (db) return db;
-  try {
-    console.log('Connecting to MongoDB...');
-    client = new MongoClient(process.env.DATABASE_URL, {
-      connectTimeoutMS: 5000,
-      serverSelectionTimeoutMS: 5000,
-    });
-    await client.connect();
-    db = client.db('news_db');
-    console.log('Connected to MongoDB');
-    return db;
-  } catch (error) {
-    console.error('MongoDB connection failed:', error.message);
-    throw error;
-  }
-}
-
-async function closeDatabaseConnection() {
-  if (client) {
-    await client.close();
-    client = null;
-    db = null;
-    console.log('MongoDB connection closed');
-  }
-}
-
-function verifyToken(request) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader) return null;
-  const token = authHeader.replace('Bearer ', '');
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
-    console.error('Token verification failed:', error.message);
-    return null;
-  }
-}
-
-function createToken(user) {
-  return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, {
-    expiresIn: '1h',
-  });
-}
+const uri = process.env.DATABASE_URL; // Set in Cloudflare Workers environment
+const client = new MongoClient(uri);
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your_jwt_secret');
 
 export default {
-  async fetch(request, env, ctx) {
-    // Handle CORS preflight (OPTIONS) requests
-    if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 204,
-        headers: corsHeaders,
-      });
-    }
-
+  async fetch(request) {
     try {
+      await client.connect();
+      const db = client.db('news');
+      const articlesCollection = db.collection('articles');
+      const usersCollection = db.collection('users');
       const url = new URL(request.url);
-      const path = url.pathname.replace(/^\/api/, '');
+      const method = request.method;
 
-      // Connect to the database
-      const database = await connectToDatabase();
-      const articlesCollection = database.collection('articles');
-      const usersCollection = database.collection('users');
+      // Helper to authenticate token
+      const authenticateToken = async (headers) => {
+        const authHeader = headers.get('authorization');
+        const token = authHeader && authHeader.split(' ')[1];
+        if (!token) throw new Error('Access denied');
+        try {
+          const { payload } = await jwtVerify(token, JWT_SECRET);
+          return payload;
+        } catch (err) {
+          throw new Error('Invalid token');
+        }
+      };
 
-      // Handle routes
-      if (path === '/news' && request.method === 'GET') {
-        const category = url.searchParams.get('category');
-        const isBreaking = url.searchParams.get('isBreaking');
-        const limit = parseInt(url.searchParams.get('limit')) || null;
-
-        let query = {};
-        if (category) query.category = category;
-        if (isBreaking !== null) query.isBreaking = isBreaking === 'true';
-
-        let articlesQuery = articlesCollection.find(query);
-        if (limit) articlesQuery = articlesQuery.limit(limit);
-
-        const articles = await articlesQuery.toArray();
-        console.log(`Fetched ${articles.length} articles`);
-
-        return new Response(JSON.stringify(articles), {
-          status: 200,
-          headers: corsHeaders,
+      // Handle POST /auth/login
+      if (url.pathname === '/api/auth/login' && method === 'POST') {
+        const { username, password } = await request.json();
+        const user = await usersCollection.findOne({ username });
+        if (!user) throw new Error('Invalid credentials');
+        const isMatch = await compare(password, user.password);
+        if (!isMatch) throw new Error('Invalid credentials');
+        const token = await new SignJWT({ username: user.username })
+          .setProtectedHeader({ alg: 'HS256' })
+          .setExpirationTime('1h')
+          .sign(JWT_SECRET);
+        return new Response(JSON.stringify({ token }), {
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
         });
       }
 
-      if (path.startsWith('/news/') && request.method === 'GET') {
-        const id = path.split('/')[2];
-        const article = await articlesCollection.findOne({ _id: id });
+      // Handle GET /api/news
+      if (url.pathname === '/api/news' && method === 'GET') {
+        const query = {};
+        const urlQuery = url.searchParams;
+        if (urlQuery.has('category')) query.category = urlQuery.get('category');
+        if (urlQuery.has('isBreaking')) query.isBreaking = urlQuery.get('isBreaking') === 'true';
+        let articlesQuery = articlesCollection.find(query);
+        if (urlQuery.has('limit')) articlesQuery = articlesQuery.limit(Number(urlQuery.get('limit')));
+        const articles = await articlesQuery.toArray();
+        return new Response(JSON.stringify(articles), {
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        });
+      }
+
+      // Handle GET /api/news/:id
+      if (url.pathname.startsWith('/api/news/') && method === 'GET') {
+        const id = url.pathname.split('/')[3];
+        const article = await articlesCollection.findOne({ _id: new ObjectId(id) });
         if (!article) {
           return new Response(JSON.stringify({ error: 'Article not found' }), {
             status: 404,
-            headers: corsHeaders,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
           });
         }
         return new Response(JSON.stringify(article), {
-          status: 200,
-          headers: corsHeaders,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
         });
       }
 
-      if (path === '/news' && request.method === 'POST') {
-        const user = verifyToken(request);
-        if (!user) {
-          return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-            status: 401,
-            headers: corsHeaders,
+      // Handle POST /api/news (authenticated)
+      if (url.pathname === '/api/news' && method === 'POST') {
+        await authenticateToken(request.headers);
+        const { title, content, category, author, excerpt, isBreaking } = await request.json();
+        if (!title || !content || !category) {
+          return new Response(JSON.stringify({ error: 'Title, content, and category are required' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
           });
         }
-
-        const data = await request.json();
-        const article = {
-          ...data,
-          date: new Date().toISOString(),
-          author: user.username,
+        const articleData = {
+          title,
+          content,
+          category,
+          author: author || undefined,
+          excerpt: excerpt || undefined,
+          isBreaking: isBreaking === 'true' || isBreaking === true || false,
+          date: new Date(),
         };
-        const result = await articlesCollection.insertOne(article);
-        return new Response(JSON.stringify({ id: result.insertedId, ...article }), {
+        const result = await articlesCollection.insertOne(articleData);
+        const newArticle = await articlesCollection.findOne({ _id: result.insertedId });
+        return new Response(JSON.stringify(newArticle), {
           status: 201,
-          headers: corsHeaders,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
         });
       }
 
-      if (path === '/login' && request.method === 'POST') {
-        const { username, password } = await request.json();
-        const user = await usersCollection.findOne({ username, password });
-        if (!user) {
-          return new Response(JSON.stringify({ error: 'Invalid credentials' }), {
-            status: 401,
-            headers: corsHeaders,
+      // Handle PUT /api/news/:id (authenticated)
+      if (url.pathname.startsWith('/api/news/') && method === 'PUT') {
+        await authenticateToken(request.headers);
+        const id = url.pathname.split('/')[3];
+        const { title, content, category, author, excerpt, isBreaking } = await request.json();
+        const updateData = {
+          title: title || undefined,
+          content: content || undefined,
+          category: category || undefined,
+          author: author || undefined,
+          excerpt: excerpt || undefined,
+          isBreaking: isBreaking === 'true' || isBreaking === true || false,
+        };
+        const result = await articlesCollection.findOneAndUpdate(
+          { _id: new ObjectId(id) },
+          { $set: updateData },
+          { returnDocument: 'after' }
+        );
+        if (!result.value) {
+          return new Response(JSON.stringify({ error: 'Article not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
           });
         }
-        const token = createToken(user);
-        return new Response(JSON.stringify({ token }), {
-          status: 200,
-          headers: corsHeaders,
+        return new Response(JSON.stringify(result.value), {
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
         });
       }
 
-      return new Response(JSON.stringify({ error: 'Not found' }), {
-        status: 404,
-        headers: corsHeaders,
-      });
+      // Handle DELETE /api/news/:id (authenticated)
+      if (url.pathname.startsWith('/api/news/') && method === 'DELETE') {
+        await authenticateToken(request.headers);
+        const id = url.pathname.split('/')[3];
+        const result = await articlesCollection.findOneAndDelete({ _id: new ObjectId(id) });
+        if (!result.value) {
+          return new Response(JSON.stringify({ error: 'Article not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          });
+        }
+        return new Response(JSON.stringify({ message: 'Article deleted' }), {
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        });
+      }
+
+      return new Response('Not Found', { status: 404 });
     } catch (error) {
-      console.error('Global error:', error.message);
-      return new Response(JSON.stringify({ error: 'Internal server error', details: error.message }), {
-        status: 500,
-        headers: corsHeaders, // Ensure CORS headers are sent even on errors
+      return new Response(JSON.stringify({ error: error.message || 'Server Error' }), {
+        status: error.message === 'Access denied' || error.message === 'Invalid token' ? 401 : 500,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     } finally {
-      await closeDatabaseConnection();
+      await client.close();
     }
   },
 };
