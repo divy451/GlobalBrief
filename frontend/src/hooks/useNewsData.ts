@@ -104,7 +104,11 @@ export function useBreakingNews() {
   return useQuery<BreakingNewsItem[], Error>({
     queryKey: ["breakingNews"],
     queryFn: fetchBreakingNews,
-    retry: 1,
+    retry: 3, // Increased retries
+    retryDelay: 1000, // Delay between retries
+    onError: (error) => {
+      console.error('Error fetching breaking news:', error.message);
+    },
   });
 }
 
@@ -112,7 +116,8 @@ export function useFeaturedArticles() {
   return useQuery<Article[], Error>({
     queryKey: ["featuredArticles"],
     queryFn: fetchFeaturedArticles,
-    retry: 1,
+    retry: 3,
+    retryDelay: 1000,
   });
 }
 
@@ -120,6 +125,8 @@ export function useCategories() {
   return useQuery<Category[], Error>({
     queryKey: ["categories"],
     queryFn: fetchCategories,
+    retry: 3,
+    retryDelay: 1000,
   });
 }
 
@@ -128,7 +135,11 @@ export function useCategoryArticles(category: string, limit?: number) {
     queryKey: ["categoryArticles", category],
     queryFn: () => fetchCategoryArticles(category, limit),
     enabled: !!category,
-    retry: 1,
+    retry: 3,
+    retryDelay: 1000,
+    onError: (error) => {
+      console.error(`Error fetching ${category} articles:`, error.message);
+    },
   });
 }
 
@@ -136,7 +147,8 @@ export function useTrendingArticles(limit?: number) {
   return useQuery<Article[], Error>({
     queryKey: ["trendingArticles", limit],
     queryFn: () => fetchTrendingArticles(limit),
-    retry: 1,
+    retry: 3,
+    retryDelay: 1000,
   });
 }
 
@@ -144,7 +156,8 @@ export function useArticleById(id: string) {
   return useQuery<Article, Error>({
     queryKey: ["article", id],
     queryFn: () => fetchArticleById(id),
-    retry: 1,
+    retry: 3,
+    retryDelay: 1000,
     onError: (error) => {
       console.error('Error fetching article:', error.message);
     },
@@ -164,6 +177,10 @@ export function useNewsData() {
   return useQuery<Article[], Error>({
     queryKey: ["articles"],
     queryFn: () => fetchArticles(),
-    retry: 1,
+    retry: 3,
+    retryDelay: 1000,
+    onError: (error) => {
+      console.error('Error fetching news data:', error.message);
+    },
   });
 }

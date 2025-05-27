@@ -80,7 +80,7 @@ export default {
         }
       };
 
-      // Proxy images to fix CORS
+      // Proxy images to fix CORS and CORP
       if (url.pathname.startsWith('/api/images/') && method === 'GET') {
         const imageUrl = url.searchParams.get('url');
         if (!imageUrl) {
@@ -98,6 +98,8 @@ export default {
         }
         const imageHeaders = new Headers(imageResponse.headers);
         imageHeaders.set('Access-Control-Allow-Origin', allowedOrigin);
+        imageHeaders.set('Cross-Origin-Resource-Policy', 'cross-origin');
+        imageHeaders.set('Content-Type', imageResponse.headers.get('Content-Type') || 'image/jpeg');
         return new Response(imageResponse.body, {
           status: imageResponse.status,
           headers: imageHeaders,
