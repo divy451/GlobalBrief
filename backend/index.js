@@ -30,6 +30,8 @@ export default {
       };
 
       // Handle POST /auth/login
+      // This path is still expected to be /api/auth/login if your auth logic is separate
+      // If frontend sends /auth/login, change this too. Assuming frontend sends /api/auth/login
       if (url.pathname === '/api/auth/login' && method === 'POST') {
         const { username, password } = await request.json();
         const user = await usersCollection.findOne({ username });
@@ -45,8 +47,8 @@ export default {
         });
       }
 
-      // Handle GET /api/news
-      if (url.pathname === '/api/news' && method === 'GET') {
+      // Handle GET /news (CHANGED from /api/news)
+      if (url.pathname === '/news' && method === 'GET') {
         const query = {};
         const urlQuery = url.searchParams;
         if (urlQuery.has('category')) query.category = urlQuery.get('category');
@@ -59,9 +61,16 @@ export default {
         });
       }
 
-      // Handle GET /api/news/:id
-      if (url.pathname.startsWith('/api/news/') && method === 'GET') {
-        const id = url.pathname.split('/')[3];
+      // Handle GET /news/:id (CHANGED from /api/news/:id)
+      if (url.pathname.startsWith('/news/') && method === 'GET') {
+        // Correctly extract ID: if pathname is /news/123, split gives ["", "news", "123"]
+        const id = url.pathname.split('/')[2];
+        if (!id) { // Added a check for missing ID
+          return new Response(JSON.stringify({ error: 'Article ID is required' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          });
+        }
         const article = await articlesCollection.findOne({ _id: new ObjectId(id) });
         if (!article) {
           return new Response(JSON.stringify({ error: 'Article not found' }), {
@@ -74,8 +83,8 @@ export default {
         });
       }
 
-      // Handle POST /api/news (authenticated)
-      if (url.pathname === '/api/news' && method === 'POST') {
+      // Handle POST /news (authenticated) (CHANGED from /api/news)
+      if (url.pathname === '/news' && method === 'POST') {
         await authenticateToken(request.headers);
         const { title, content, category, author, excerpt, isBreaking } = await request.json();
         if (!title || !content || !category) {
@@ -101,10 +110,17 @@ export default {
         });
       }
 
-      // Handle PUT /api/news/:id (authenticated)
-      if (url.pathname.startsWith('/api/news/') && method === 'PUT') {
+      // Handle PUT /news/:id (authenticated) (CHANGED from /api/news/:id)
+      if (url.pathname.startsWith('/news/') && method === 'PUT') {
         await authenticateToken(request.headers);
-        const id = url.pathname.split('/')[3];
+        // Correctly extract ID: if pathname is /news/123, split gives ["", "news", "123"]
+        const id = url.pathname.split('/')[2];
+        if (!id) { // Added a check for missing ID
+          return new Response(JSON.stringify({ error: 'Article ID is required' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          });
+        }
         const { title, content, category, author, excerpt, isBreaking } = await request.json();
         const updateData = {
           title: title || undefined,
@@ -130,10 +146,17 @@ export default {
         });
       }
 
-      // Handle DELETE /api/news/:id (authenticated)
-      if (url.pathname.startsWith('/api/news/') && method === 'DELETE') {
+      // Handle DELETE /news/:id (authenticated) (CHANGED from /api/news/:id)
+      if (url.pathname.startsWith('/news/') && method === 'DELETE') {
         await authenticateToken(request.headers);
-        const id = url.pathname.split('/')[3];
+        // Correctly extract ID: if pathname is /news/123, split gives ["", "news", "123"]
+        const id = url.pathname.split('/')[2];
+        if (!id) { // Added a check for missing ID
+          return new Response(JSON.stringify({ error: 'Article ID is required' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          });
+        }
         const result = await articlesCollection.findOneAndDelete({ _id: new ObjectId(id) });
         if (!result.value) {
           return new Response(JSON.stringify({ error: 'Article not found' }), {
@@ -153,11 +176,6 @@ export default {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     } finally {
-      // It's generally not recommended to close the client on every request in a serverless function
-      // as it adds overhead. Cloudflare Workers handle connection pooling.
-      // However, if you explicitly want to ensure it's closed (e.g., for testing or specific environment),
-      // keep it. For production serverless, often it's omitted.
-      // For now, keeping it as per your original code.
       await client.close();
     }
   },

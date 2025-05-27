@@ -1,3 +1,5 @@
+// useNewsData.tsx (original content you provided, assuming it correctly appends '/api/news')
+
 import { useQuery } from "@tanstack/react-query";
 import { Article, Category, BreakingNewsItem } from "../types/news";
 import { categories } from "../data/mockData";
@@ -26,8 +28,8 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  // CHANGED: Removed the extra '/api' from the fetch URL
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/news${query.toString() ? '?' + query : ''}`, {
+  // This will now correctly form https://news-api.poddara766.workers.dev/api/news
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news${query.toString() ? '?' + query : ''}`, {
     headers,
   });
   if (!response.ok) {
@@ -52,8 +54,8 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
 };
 
 const fetchArticleById = async (id: string): Promise<Article> => {
-  // CHANGED: Removed the extra '/api' from the fetch URL
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/news/${id}`);
+  // This will now correctly form https://news-api.poddara766.workers.dev/api/news/:id
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news/${id}`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     console.error('fetchArticleById: Fetch error:', errorData.error || response.statusText);
