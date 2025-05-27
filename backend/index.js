@@ -3,8 +3,19 @@ import { SignJWT, jwtVerify } from 'jose';
 import { hash, compare } from 'bcryptjs';
 
 const uri = process.env.DATABASE_URL;
-const client = new MongoClient(uri);
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your_jwt_secret');
+
+// Initialize MongoDB client once and reuse it
+let client;
+let db;
+
+const connectToDatabase = async () => {
+  if (db) return db; // Reuse existing connection
+  client = new MongoClient(uri);
+  await client.connect();
+  db = client.db('news_db');
+  return db;
+};
 
 // Define CORS headers
 const corsHeaders = {
@@ -25,8 +36,7 @@ export default {
     }
 
     try {
-      await client.connect();
-      const db = client.db('news_db'); // Fixed database name to match wrangler.toml
+      const db = await connectToDatabase(); // Use the persistent connection
       const articlesCollection = db.collection('articles');
       const usersCollection = db.collection('users');
       const url = new URL(request.url);
@@ -169,10 +179,8 @@ export default {
     } catch (error) {
       return new Response(JSON.stringify({ error: error.message || 'Server Error' }), {
         status: error.message === 'Access denied' || error.message === 'Invalid token' ? 401 : 500,
-        headers: corsHeaders, // Ensure CORS headers are sent even on errors
+        headers: corsHeaders,
       });
-    } finally {
-      await client.close();
     }
   },
 };
