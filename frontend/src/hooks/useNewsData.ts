@@ -14,7 +14,7 @@ interface ApiArticle {
   isBreaking?: boolean;
 }
 
-// Fallback articles in case API fails
+// Fallback articles to display when API fails
 const fallbackArticles: Article[] = [
   {
     id: "fallback-1",
@@ -46,10 +46,12 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
   const apiUrl = import.meta.env.VITE_API_URL || 'https://news-api.poddara766.workers.dev/api';
   const fullUrl = `${apiUrl}/news${query.toString() ? '?' + query : ''}`;
   console.log('fetchArticles: Request URL:', fullUrl);
+  console.log('fetchArticles: Environment VITE_API_URL:', import.meta.env.VITE_API_URL);
 
   try {
     const response = await fetch(fullUrl, { headers });
-    console.log('fetchArticles: Response status:', response.status, 'Headers:', Object.fromEntries(response.headers.entries()));
+    console.log('fetchArticles: Response status:', response.status);
+    console.log('fetchArticles: Response headers:', Object.fromEntries(response.headers.entries()));
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('fetchArticles: Error response:', errorData);
@@ -68,14 +70,16 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
       date: article.date ? new Date(article.date).toISOString() : new Date().toISOString(),
       author: article.author || 'Unknown',
       content: article.content || '',
-      image: article.image ? `${apiUrl}/images/?url=${encodeURIComponent(article.image)}` : '',
+      image: article.image || '',
       excerpt: article.excerpt || '',
       isBreaking: article.isBreaking || false,
       path: `/article/${article._id}`,
     }));
   } catch (error) {
     console.error('fetchArticles: Fetch failed:', error.message);
-    throw error;
+    console.error('fetchArticles: Error stack:', error.stack);
+    console.warn('fetchArticles: Using fallback articles due to fetch failure.');
+    return fallbackArticles; // Return fallback articles instead of throwing
   }
 };
 
@@ -86,11 +90,12 @@ const fetchArticleById = async (id: string): Promise<Article> => {
 
   try {
     const response = await fetch(fullUrl);
-    console.log('fetchArticleById: Response status:', response.status, 'Headers:', Object.fromEntries(response.headers.entries()));
+    console.log('fetchArticleById: Response status:', response.status);
+    console.log('fetchArticleById: Response headers:', Object.fromEntries(response.headers.entries()));
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('fetchArticleById: Error response:', errorData);
-      throw new Error(errorData.error || `Article not found: ${response.statusText} (${response.status})`);
+      throw new Error(errorData.error || `Failed to fetch article: ${response.statusText} (${response.status})`);
     }
     const article: ApiArticle = await response.json();
     console.log('fetchArticleById: Article fetched:', article);
@@ -101,14 +106,16 @@ const fetchArticleById = async (id: string): Promise<Article> => {
       date: article.date ? new Date(article.date).toISOString() : new Date().toISOString(),
       author: article.author || 'Unknown',
       content: article.content || '',
-      image: article.image ? `${apiUrl}/images/?url=${encodeURIComponent(article.image)}` : '',
+      image: article.image || '',
       excerpt: article.excerpt || '',
       isBreaking: article.isBreaking || false,
       path: `/article/${article._id}`,
     };
   } catch (error) {
     console.error('fetchArticleById: Fetch failed:', error.message);
-    throw error;
+    console.error('fetchArticleById: Error stack:', error.stack);
+    console.warn('fetchArticleById: Using fallback article due to fetch failure.');
+    return fallbackArticles[0]; // Return a single fallback article
   }
 };
 
@@ -145,12 +152,10 @@ export function useBreakingNews() {
   return useQuery<BreakingNewsItem[], Error>({
     queryKey: ["breakingNews"],
     queryFn: fetchBreakingNews,
-    retry: 3,
-    retryDelay: 1000,
+    retry: 1,
     onError: (error) => {
       console.error('Error fetching breaking news:', error.message);
     },
-    // Use fallback data if fetch fails
     placeholderData: fallbackArticles.map(article => ({
       id: article.id,
       title: article.title,
@@ -167,8 +172,7 @@ export function useFeaturedArticles() {
   return useQuery<Article[], Error>({
     queryKey: ["featuredArticles"],
     queryFn: fetchFeaturedArticles,
-    retry: 3,
-    retryDelay: 1000,
+    retry: 1,
     onError: (error) => {
       console.error('Error fetching featured articles:', error.message);
     },
@@ -180,8 +184,7 @@ export function useCategories() {
   return useQuery<Category[], Error>({
     queryKey: ["categories"],
     queryFn: fetchCategories,
-    retry: 3,
-    retryDelay: 1000,
+    retry: 1,
   });
 }
 
@@ -190,8 +193,7 @@ export function useCategoryArticles(category: string, limit?: number) {
     queryKey: ["categoryArticles", category],
     queryFn: () => fetchCategoryArticles(category, limit),
     enabled: !!category,
-    retry: 3,
-    retryDelay: 1000,
+    retry: 1,
     onError: (error) => {
       console.error(`Error fetching ${category} articles:`, error.message);
     },
@@ -203,8 +205,7 @@ export function useTrendingArticles(limit?: number) {
   return useQuery<Article[], Error>({
     queryKey: ["trendingArticles", limit],
     queryFn: () => fetchTrendingArticles(limit),
-    retry: 3,
-    retryDelay: 1000,
+    retry: 1,
     onError: (error) => {
       console.error('Error fetching trending articles:', error.message);
     },
@@ -216,11 +217,11 @@ export function useArticleById(id: string) {
   return useQuery<Article, Error>({
     queryKey: ["article", id],
     queryFn: () => fetchArticleById(id),
-    retry: 3,
-    retryDelay: 1000,
+    retry: 1,
     onError: (error) => {
       console.error('Error fetching article:', error.message);
     },
+    placeholderData: fallbackArticles[0],
   });
 }
 
@@ -237,8 +238,7 @@ export function useNewsData() {
   return useQuery<Article[], Error>({
     queryKey: ["articles"],
     queryFn: () => fetchArticles(),
-    retry: 3,
-    retryDelay: 1000,
+    retry: 1,
     onError: (error) => {
       console.error('Error fetching news data:', error.message);
     },
