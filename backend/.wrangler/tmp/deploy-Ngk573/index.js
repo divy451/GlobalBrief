@@ -36290,11 +36290,23 @@ var import_bcryptjs = __toESM(require_bcrypt());
 var uri = process.env.DATABASE_URL;
 var client = new import_mongodb.MongoClient(uri);
 var JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "your_jwt_secret");
+var corsHeaders = {
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization"
+};
 var index_default = {
   async fetch(request2) {
+    if (request2.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders
+      });
+    }
     try {
       await client.connect();
-      const db = client.db("news");
+      const db = client.db("news_db");
       const articlesCollection = db.collection("articles");
       const usersCollection = db.collection("users");
       const url = new URL(request2.url);
@@ -36318,7 +36330,7 @@ var index_default = {
         if (!isMatch) throw new Error("Invalid credentials");
         const token = await new SignJWT({ username: user.username }).setProtectedHeader({ alg: "HS256" }).setExpirationTime("1h").sign(JWT_SECRET);
         return new Response(JSON.stringify({ token }), {
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+          headers: corsHeaders
         });
       }
       if (url.pathname === "/api/news" && method === "GET") {
@@ -36330,26 +36342,20 @@ var index_default = {
         if (urlQuery.has("limit")) articlesQuery = articlesQuery.limit(Number(urlQuery.get("limit")));
         const articles = await articlesQuery.toArray();
         return new Response(JSON.stringify(articles), {
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+          headers: corsHeaders
         });
       }
       if (url.pathname.startsWith("/api/news/") && method === "GET") {
         const id = url.pathname.split("/")[3];
-        if (!id) {
-          return new Response(JSON.stringify({ error: "Article ID is required" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-          });
-        }
         const article = await articlesCollection.findOne({ _id: new import_mongodb.ObjectId(id) });
         if (!article) {
           return new Response(JSON.stringify({ error: "Article not found" }), {
             status: 404,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+            headers: corsHeaders
           });
         }
         return new Response(JSON.stringify(article), {
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+          headers: corsHeaders
         });
       }
       if (url.pathname === "/api/news" && method === "POST") {
@@ -36358,7 +36364,7 @@ var index_default = {
         if (!title2 || !content || !category) {
           return new Response(JSON.stringify({ error: "Title, content, and category are required" }), {
             status: 400,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+            headers: corsHeaders
           });
         }
         const articleData = {
@@ -36374,18 +36380,12 @@ var index_default = {
         const newArticle = await articlesCollection.findOne({ _id: result.insertedId });
         return new Response(JSON.stringify(newArticle), {
           status: 201,
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+          headers: corsHeaders
         });
       }
       if (url.pathname.startsWith("/api/news/") && method === "PUT") {
         await authenticateToken(request2.headers);
         const id = url.pathname.split("/")[3];
-        if (!id) {
-          return new Response(JSON.stringify({ error: "Article ID is required" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-          });
-        }
         const { title: title2, content, category, author, excerpt, isBreaking } = await request2.json();
         const updateData = {
           title: title2 || void 0,
@@ -36403,38 +36403,36 @@ var index_default = {
         if (!result.value) {
           return new Response(JSON.stringify({ error: "Article not found" }), {
             status: 404,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+            headers: corsHeaders
           });
         }
         return new Response(JSON.stringify(result.value), {
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+          headers: corsHeaders
         });
       }
       if (url.pathname.startsWith("/api/news/") && method === "DELETE") {
         await authenticateToken(request2.headers);
         const id = url.pathname.split("/")[3];
-        if (!id) {
-          return new Response(JSON.stringify({ error: "Article ID is required" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-          });
-        }
         const result = await articlesCollection.findOneAndDelete({ _id: new import_mongodb.ObjectId(id) });
         if (!result.value) {
           return new Response(JSON.stringify({ error: "Article not found" }), {
             status: 404,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+            headers: corsHeaders
           });
         }
         return new Response(JSON.stringify({ message: "Article deleted" }), {
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+          headers: corsHeaders
         });
       }
-      return new Response("Not Found", { status: 404 });
+      return new Response("Not Found", {
+        status: 404,
+        headers: corsHeaders
+      });
     } catch (error3) {
       return new Response(JSON.stringify({ error: error3.message || "Server Error" }), {
         status: error3.message === "Access denied" || error3.message === "Invalid token" ? 401 : 500,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        headers: corsHeaders
+        // Ensure CORS headers are sent even on errors
       });
     } finally {
       await client.close();

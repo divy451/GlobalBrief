@@ -1,5 +1,3 @@
-// useNewsData.tsx (As provided in our second-to-last conversation, where it appends '/api/news')
-
 import { useQuery } from "@tanstack/react-query";
 import { Article, Category, BreakingNewsItem } from "../types/news";
 import { categories } from "../data/mockData";
@@ -17,6 +15,22 @@ interface ApiArticle {
   isBreaking?: boolean;
 }
 
+// Fallback articles to display when API fails
+const fallbackArticles: Article[] = [
+  {
+    id: "fallback-1",
+    title: "Fallback News Article",
+    content: "This is a fallback article displayed because the API failed to load articles.",
+    category: "General",
+    date: new Date().toISOString(),
+    author: "System",
+    image: "https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?w=400",
+    excerpt: "Fallback article due to API failure.",
+    isBreaking: false,
+    path: "/article/fallback-1",
+  },
+];
+
 const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean }, limit?: number, isPublic: boolean = false): Promise<Article[]> => {
   const token = isPublic ? null : localStorage.getItem('admin_token');
   console.log('fetchArticles: Fetching with token:', token);
@@ -24,18 +38,18 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
   if (filter?.category) query.append('category', filter.category);
   if (filter?.isBreaking !== undefined) query.append('isBreaking', filter.isBreaking.toString());
   if (limit) query.append('limit', limit.toString());
-
+  
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  // This will form https://news-api.poddara766.workers.dev/api/news
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news${query.toString() ? '?' + query : ''}`, {
+  
+  const apiUrl = 'https://news-api.poddara766.workers.dev'; // Hardcoded VITE_API_URL
+  const response = await fetch(`${apiUrl}/api/news${query.toString() ? '?' + query : ''}`, {
     headers,
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     console.error('fetchArticles: Fetch error:', errorData.error || response.statusText);
-    throw new Error(errorData.error || 'Failed to fetch articles');
+    return fallbackArticles; // Return fallback articles instead of throwing
   }
   const articles: ApiArticle[] = await response.json();
   console.log('fetchArticles: Articles fetched:', articles);
@@ -54,12 +68,12 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
 };
 
 const fetchArticleById = async (id: string): Promise<Article> => {
-  // This will form https://news-api.poddara766.workers.dev/api/news/:id
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news/${id}`);
+  const apiUrl = 'https://news-api.poddara766.workers.dev'; // Hardcoded VITE_API_URL
+  const response = await fetch(`${apiUrl}/api/news/${id}`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     console.error('fetchArticleById: Fetch error:', errorData.error || response.statusText);
-    throw new Error(errorData.error || 'Failed to fetch article');
+    return fallbackArticles[0]; // Return a single fallback article
   }
   const article: ApiArticle = await response.json();
   console.log('fetchArticleById: Article fetched:', article);
@@ -111,6 +125,15 @@ export function useBreakingNews() {
     queryKey: ["breakingNews"],
     queryFn: fetchBreakingNews,
     retry: 1,
+    placeholderData: fallbackArticles.map(article => ({
+      id: article.id,
+      title: article.title,
+      category: article.category,
+      date: article.date,
+      image: article.image,
+      path: article.path,
+      isBreaking: article.isBreaking,
+    })),
   });
 }
 
@@ -119,6 +142,7 @@ export function useFeaturedArticles() {
     queryKey: ["featuredArticles"],
     queryFn: fetchFeaturedArticles,
     retry: 1,
+    placeholderData: fallbackArticles,
   });
 }
 
@@ -135,6 +159,7 @@ export function useCategoryArticles(category: string, limit?: number) {
     queryFn: () => fetchCategoryArticles(category, limit),
     enabled: !!category,
     retry: 1,
+    placeholderData: fallbackArticles,
   });
 }
 
@@ -143,6 +168,7 @@ export function useTrendingArticles(limit?: number) {
     queryKey: ["trendingArticles", limit],
     queryFn: () => fetchTrendingArticles(limit),
     retry: 1,
+    placeholderData: fallbackArticles,
   });
 }
 
@@ -151,6 +177,7 @@ export function useArticleById(id: string) {
     queryKey: ["article", id],
     queryFn: () => fetchArticleById(id),
     retry: 1,
+    placeholderData: fallbackArticles[0],
   });
 }
 
@@ -168,5 +195,6 @@ export function useNewsData() {
     queryKey: ["articles"],
     queryFn: () => fetchArticles(),
     retry: 1,
+    placeholderData: fallbackArticles,
   });
 }
