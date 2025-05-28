@@ -1,262 +1,143 @@
-import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import MainLayout from '@/components/layout/MainLayout';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { useNewsData } from '@/hooks/useNewsData';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { useToast } from "@/components/ui/use-toast";
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "../context/AuthContext";
+import { Article } from "../types/news";
+import { Link } from "react-router-dom";
 
-interface Article {
-  id: string; // Note: Backend might return '_id' instead of 'id'
-  title: string;
-  category: string;
-  date: string;
-  author: string;
-  content: string;
-  excerpt: string;
-  image: string;
-  isBreaking: boolean;
-}
-
-const updateArticleBreaking = async ({ id, article }: { id: string; article: Article }) => {
-  const token = localStorage.getItem('admin_token');
-  const response = await fetch(`http://localhost:5000/api/news/${id}`, {
-    method: 'PUT',
+const fetchNews = async (token: string): Promise<Article[]> => {
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/news`, {
     headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      title: article.title,
-      content: article.content,
-      category: article.category,
-      author: article.author,
-      excerpt: article.excerpt,
-      image: article.image,
-      isBreaking: article.isBreaking,
-    }),
   });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Failed to update article');
-  }
+  if (!response.ok) throw new Error("Failed to fetch news");
   return response.json();
 };
 
-const AdminPortal: React.FC = () => {
-  const { data: articles, isLoading, error } = useNewsData();
-  const { toast } = useToast();
-  const navigate = useNavigate();
+const AdminPortal = () => {
+  const { token, logout } = useAuth();
   const queryClient = useQueryClient();
 
-  const mutation = useMutation({
+  const { data: articles, error, isLoading } = useQuery({
+    queryKey: ["news"],
+    queryFn: () => fetchNews(token!),
+    enabled: !!token,
+  });
+
+  const updateArticleBreaking = async ({
+    id,
+    isBreaking,
+  }: {
+    id: string;
+    isBreaking: boolean;
+  }) => {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/news/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ isBreaking }),
+    });
+    if (!response.ok) throw new Error("Failed to update article");
+    return response.json();
+  };
+
+  const deleteArticle = async (id: string) => {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/news/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error("Failed to delete article");
+    return response.json();
+  };
+
+  const updateMutation = useMutation({
     mutationFn: updateArticleBreaking,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['articles'] });
-      toast({ title: "Article updated successfully" });
-    },
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Failed to update article';
-      toast({ title: "Failed to update article", description: message, variant: "destructive" });
+      queryClient.invalidateQueries({ queryKey: ["news"] });
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const token = localStorage.getItem('admin_token');
-      if (!token) throw new Error('No admin token found');
-      console.log('Attempting to delete article:', id, 'with token:', token);
-      const response = await fetch(`http://localhost:5000/api/news/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        console.error('Delete failed:', data.error || response.statusText, 'Status:', response.status);
-        throw new Error(data.error || `Failed to delete article: ${response.status}`);
-      }
-      console.log('Delete successful for article:', id);
-      return response.json();
-    },
+    mutationFn: deleteArticle,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['articles'] });
-      toast({
-        title: "Article deleted",
-        description: "The article was successfully deleted",
-      });
-    },
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Failed to delete article';
-      console.error('Delete error:', message);
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive",
-      });
+      queryClient.invalidateQueries({ queryKey: ["news"] });
     },
   });
 
-  useEffect(() => {
-    const token = localStorage.getItem('admin_token');
-    console.log('AdminPortal: Token check:', token);
-    if (!token) {
-      console.log('AdminPortal: No token, redirecting to login');
-      toast({
-        title: "Unauthorized",
-        description: "Please log in to access the admin portal",
-        variant: "destructive",
-      });
-      navigate('/admin/login');
-    }
-    console.log('AdminPortal: Articles received:', articles);
-    // Log article IDs to diagnose key warning
-    if (articles) {
-      console.log('AdminPortal: Article IDs:', articles.map((a: Article) => a.id));
-      // Check for duplicate or missing IDs
-      const ids = articles.map((a: Article) => a.id);
-      const uniqueIds = new Set(ids);
-      console.log('AdminPortal: Unique IDs count:', uniqueIds.size, 'Total IDs:', ids.length);
-      if (uniqueIds.size < ids.length) {
-        console.warn('AdminPortal: Duplicate IDs detected in articles');
-      }
-      if (ids.some(id => !id)) {
-        console.warn('AdminPortal: Missing or undefined IDs detected in articles');
-      }
-    }
-  }, [navigate, toast, articles]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token');
-    console.log('AdminPortal: Logged out, redirecting to login');
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
-    });
-    navigate('/admin/login');
+  const handleBreakingToggle = (id: string, isBreaking: boolean) => {
+    updateMutation.mutate({ id, isBreaking: !isBreaking });
   };
 
-  if (isLoading) {
-    return (
-      <MainLayout>
-        <div className="container py-12">
-          <LoadingSpinner />
-        </div>
-      </MainLayout>
-    );
-  }
+  const handleDelete = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this article?")) {
+      deleteMutation.mutate(id);
+    }
+  };
 
-  if (error) {
-    return (
-      <MainLayout>
-        <div className="container py-12">
-          <p className="text-red-600">Failed to load articles: {error.message}</p>
-        </div>
-      </MainLayout>
-    );
-  }
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {(error as Error).message}</div>;
 
   return (
-    <MainLayout>
-      <div className="container py-12">
-        <Breadcrumb className="mb-6">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/">Home</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Admin Portal</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Content Management</h1>
-          <div className="flex space-x-4">
-            <Link to="/admin/new">
-              <Button className="bg-red-600 hover:bg-red-700">Add New Article</Button>
-            </Link>
-            <Button variant="outline" onClick={handleLogout}>Logout</Button>
-          </div>
-        </div>
-
-        <div className="bg-white shadow-md rounded-lg overflow-hidden animate-fade-in">
-          {articles?.length === 0 ? (
-            <p className="p-4 text-gray-600">No articles found. Add a new article to get started.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Author</TableHead>
-                  <TableHead>Breaking News</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {articles?.map((article: Article, index: number) => (
-                  <TableRow 
-                    key={article.id || `article-${index}`} 
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <TableCell className="font-medium">{article.title}</TableCell>
-                    <TableCell>{article.category}</TableCell>
-                    <TableCell>{new Date(article.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{article.author || 'Unknown'}</TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={article.isBreaking}
-                        onCheckedChange={(checked) =>
-                          mutation.mutate({ id: article.id, article: { ...article, isBreaking: checked } })
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Link to={`/admin/edit/${article.id}`}>
-                        <Button variant="outline" size="sm" className="hover:bg-gray-100 transition-colors">Edit</Button>
-                      </Link>
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        onClick={() => deleteMutation.mutate(article.id)}
-                        className="bg-red-600 hover:bg-red-700 transition-colors"
-                      >
-                        Delete
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Admin Portal</h1>
+        <div className="space-x-4">
+          <Link
+            to="/admin/create"
+            className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+          >
+            Create Article
+          </Link>
+          <button
+            onClick={logout}
+            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+          >
+            Logout
+          </button>
         </div>
       </div>
-    </MainLayout>
+
+      <div className="grid gap-4">
+        {articles?.map((article) => (
+          <div
+            key={article._id}
+            className="bg-white p-4 rounded-lg shadow-md flex justify-between items-center"
+          >
+            <div>
+              <h2 className="text-xl font-semibold">{article.title}</h2>
+              <p className="text-gray-600">{article.category}</p>
+            </div>
+            <div className="space-x-2">
+              <button
+                onClick={() => handleBreakingToggle(article._id, article.isBreaking)}
+                className={`px-4 py-2 rounded-lg ${
+                  article.isBreaking
+                    ? "bg-yellow-500 hover:bg-yellow-600"
+                    : "bg-gray-300 hover:bg-gray-400"
+                } text-white`}
+              >
+                {article.isBreaking ? "Remove Breaking" : "Mark Breaking"}
+              </button>
+              <Link
+                to={`/admin/edit/${article._id}`}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+              >
+                Edit
+              </Link>
+              <button
+                onClick={() => handleDelete(article._id)}
+                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 };
 

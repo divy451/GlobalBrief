@@ -4,5 +4,8 @@ compatibility_date = "2025-05-27"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-DATABASE_URL = "mongodb+srv://piush:OwrbjzxrYDrF0Phe@cluster0.lx7yszv.mongodb.net/news_db?retryWrites=true&w=majority"
 JWT_SECRET = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+
+[[kv_namespaces]]
+binding = "NEWS_KV"
+id = "414a988462364291b024ecd20a4c2536"

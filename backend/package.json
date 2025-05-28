@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
-    "mongodb": "^6.0.0",
     "jose": "^5.0.0",
     "bcryptjs": "^2.4.3"
   },
