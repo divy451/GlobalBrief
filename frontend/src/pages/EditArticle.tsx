@@ -1,182 +1,305 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import MainLayout from '@/components/layout/MainLayout';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useQueryClient } from '@tanstack/react-query';
 
-const EditArticle = () => {
+const EditArticle: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { token } = useAuth();
   const navigate = useNavigate();
-
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [category, setCategory] = useState("");
-  const [author, setAuthor] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [isBreaking, setIsBreaking] = useState(false);
-  const [image, setImage] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    category: '',
+    excerpt: '',
+    content: '',
+    image: '',
+    author: '',
+    isBreaking: false,
+  });
 
   useEffect(() => {
     const fetchArticle = async () => {
+      setIsLoading(true);
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/news/${id}`, {
+        if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+          throw new Error('Invalid article ID');
+        }
+        const token = localStorage.getItem('admin_token');
+        console.log('EditArticle: Fetching article with token:', token);
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news/${id}`, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
         });
-        if (!response.ok) throw new Error("Failed to fetch article");
-        const data = await response.json();
-        setTitle(data.title);
-        setContent(data.content);
-        setCategory(data.category);
-        setAuthor(data.author || "");
-        setExcerpt(data.excerpt || "");
-        setIsBreaking(data.isBreaking);
-        setImage(data.image || "");
-        setLoading(false);
-      } catch (err: any) {
-        setError(err.message);
-        setLoading(false);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const message = response.status === 404 ? 'Article not found' : errorData.error || 'Failed to fetch article';
+          throw new Error(message);
+        }
+        const article = await response.json();
+        console.log('EditArticle: Fetched article:', article);
+        setFormData({
+          title: article.title || '',
+          category: article.category || '',
+          excerpt: article.excerpt || '',
+          content: article.content || '',
+          image: article.image || '',
+          author: article.author || '',
+          isBreaking: article.isBreaking || false,
+        });
+      } catch (error) {
+        console.error('EditArticle: Fetch error:', error);
+        const message = error instanceof Error ? error.message : 'Failed to load article';
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive",
+        });
+        navigate('/admin');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchArticle();
-  }, [id, token]);
+    if (id) {
+      fetchArticle();
+    }
+  }, [id, navigate, toast]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/news/${id}`, {
-        method: "PUT",
+      const token = localStorage.getItem('admin_token');
+      console.log('EditArticle: Updating article with token:', token);
+      console.log('EditArticle: Submitting formData:', formData);
+
+      if (!token) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+
+      const data = {
+        _id: id,
+        title: formData.title,
+        category: formData.category,
+        excerpt: formData.excerpt,
+        content: formData.content,
+        image: formData.image,
+        author: formData.author,
+        date: new Date().toISOString(),
+        isBreaking: formData.isBreaking,
+      };
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news/${id}`, {
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title,
-          content,
-          category,
-          author,
-          excerpt,
-          isBreaking,
-          image,
-        }),
+        body: JSON.stringify(data),
+      });
+
+      const responseData = await response.json();
+      console.log('EditArticle: API response:', {
+        status: response.status,
+        body: responseData,
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update article");
+        throw new Error(responseData.error || 'Failed to update article');
       }
 
-      navigate("/admin");
-    } catch (err: any) {
-      setError(err.message);
+      toast({
+        title: "Article updated",
+        description: "Your article has been successfully updated.",
+      });
+      await queryClient.invalidateQueries({ queryKey: ['articles'] });
+      navigate('/admin');
+    } catch (error) {
+      console.error('EditArticle: Update error:', error);
+      const message = error instanceof Error ? error.message : 'Failed to update article';
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+      if (message.includes('token')) {
+        localStorage.removeItem('admin_token');
+        navigate('/admin/login');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="container py-12">
+          <LoadingSpinner />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Edit Article</h1>
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md">
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2" htmlFor="title">
-            Title
-          </label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
+    <MainLayout>
+      <div className="container py-12">
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">Home</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/admin">Admin Portal</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Edit Article</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Edit Article</h1>
         </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2" htmlFor="content">
-            Content
-          </label>
-          <textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows={5}
-            required
-          />
+
+        <div className="bg-white shadow-md rounded-lg p-6 animate-fade-in">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label htmlFor="title" className="text-sm font-medium">Title</label>
+              <Input 
+                id="title" 
+                name="title"
+                value={formData.title} 
+                onChange={handleChange}
+                required 
+                className="focus:ring-red-600 transition-all"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="category" className="text-sm font-medium">Category</label>
+              <Input 
+                id="category" 
+                name="category"
+                value={formData.category} 
+                onChange={handleChange}
+                required 
+                className="focus:ring-red-600 transition-all"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="excerpt" className="text-sm font-medium">Excerpt</label>
+              <Textarea 
+                id="excerpt" 
+                name="excerpt"
+                value={formData.excerpt} 
+                onChange={handleChange}
+                required 
+                className="focus:ring-red-600 transition-all"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="content" className="text-sm font-medium">Content</label>
+              <Textarea 
+                id="content" 
+                name="content"
+                value={formData.content} 
+                onChange={handleChange}
+                className="min-h-[200px] focus:ring-red-600 transition-all"
+                required 
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="image" className="text-sm font-medium">Image URL</label>
+              <Input 
+                id="image" 
+                name="image"
+                type="url"
+                value={formData.image} 
+                onChange={handleChange}
+                placeholder="https://picsum.photos/400/300"
+                required 
+                className="focus:ring-red-600 transition-all"
+              />
+              {formData.image && (
+                <p className="text-sm text-gray-500 mt-1">Preview URL: <a href={formData.image} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{formData.image}</a></p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="author" className="text-sm font-medium">Author</label>
+              <Input 
+                id="author" 
+                name="author"
+                value={formData.author} 
+                onChange={handleChange}
+                required 
+                className="focus:ring-red-600 transition-all"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="isBreaking">Breaking News</Label>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isBreaking"
+                  checked={formData.isBreaking}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isBreaking: checked })}
+                />
+                <span className="text-sm text-gray-600">Mark as Breaking News</span>
+              </div>
+            </div>
+            
+            <div className="flex space-x-2 pt-4">
+              <Button 
+                type="submit" 
+                className="bg-red-600 hover:bg-red-700 transition-colors"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Updating...' : 'Update Article'}
+              </Button>
+              <Link to="/admin">
+                <Button variant="outline" type="button">Cancel</Button>
+              </Link>
+            </div>
+          </form>
         </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2" htmlFor="category">
-            Category
-          </label>
-          <input
-            type="text"
-            id="category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2" htmlFor="author">
-            Author (Optional)
-          </label>
-          <input
-            type="text"
-            id="author"
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-            className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2" htmlFor="excerpt">
-            Excerpt (Optional)
-          </label>
-          <input
-            type="text"
-            id="excerpt"
-            value={excerpt}
-            onChange={(e) => setExcerpt(e.target.value)}
-            className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2" htmlFor="image">
-            Image URL (Optional)
-          </label>
-          <input
-            type="text"
-            id="image"
-            value={image}
-            onChange={(e) => setImage(e.target.value)}
-            className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={isBreaking}
-              onChange={(e) => setIsBreaking(e.target.checked)}
-              className="mr-2"
-            />
-            <span>Mark as Breaking News</span>
-          </label>
-        </div>
-        <button
-          type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-        >
-          Update Article
-        </button>
-      </form>
-    </div>
+      </div>
+    </MainLayout>
   );
 };
 

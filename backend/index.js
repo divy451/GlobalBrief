@@ -3,7 +3,6 @@ import { hash, compare } from 'bcryptjs';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your_jwt_secret');
 
-// Define CORS headers
 const corsHeaders = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +12,6 @@ const corsHeaders = {
 
 export default {
   async fetch(request, env) {
-    // Handle CORS preflight (OPTIONS) requests
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
@@ -26,7 +24,6 @@ export default {
       const method = request.method;
       const kv = env.NEWS_KV;
 
-      // Helper to authenticate token
       const authenticateToken = async (headers) => {
         const authHeader = headers.get('authorization');
         const token = authHeader && authHeader.split(' ')[1];
@@ -39,8 +36,8 @@ export default {
         }
       };
 
-      // Handle POST /api/auth/login
-      if (url.pathname === '/api/auth/login' && method === 'POST') {
+      // Handle POST /auth/login (changed from /api/auth/login)
+      if (url.pathname === '/auth/login' && method === 'POST') {
         const { username, password } = await request.json();
         const user = await kv.get(`news_db:users:${username}`, { type: 'json' });
         if (!user) throw new Error('Invalid credentials');
@@ -55,7 +52,6 @@ export default {
         });
       }
 
-      // Handle GET /api/news
       if (url.pathname === '/api/news' && method === 'GET') {
         const urlQuery = url.searchParams;
         let articleIds = [];
@@ -69,16 +65,13 @@ export default {
             articleIds = (await kv.get('news_db:breaking', { type: 'json' })) || [];
           }
         } else {
-          // Fetch all articles (list all keys with prefix 'news_db:articles:')
           const keys = await kv.list({ prefix: 'news_db:articles:' });
           articleIds = keys.keys.map(key => key.name.split(':')[2]);
         }
 
-        // Apply limit
         const limit = urlQuery.has('limit') ? Number(urlQuery.get('limit')) : articleIds.length;
         articleIds = articleIds.slice(0, limit);
 
-        // Fetch articles
         const articles = [];
         for (const id of articleIds) {
           const article = await kv.get(`news_db:articles:${id}`, { type: 'json' });
@@ -90,7 +83,6 @@ export default {
         });
       }
 
-      // Handle GET /api/news/:id
       if (url.pathname.startsWith('/api/news/') && method === 'GET') {
         const id = url.pathname.split('/')[3];
         const article = await kv.get(`news_db:articles:${id}`, { type: 'json' });
@@ -105,7 +97,6 @@ export default {
         });
       }
 
-      // Handle POST /api/news (authenticated)
       if (url.pathname === '/api/news' && method === 'POST') {
         await authenticateToken(request.headers);
         const { title, content, category, author, excerpt, isBreaking, image } = await request.json();
@@ -128,16 +119,13 @@ export default {
           image: image || undefined,
         };
 
-        // Store article
         await kv.put(`news_db:articles:${id}`, JSON.stringify(articleData));
 
-        // Update category index
         const categoryKey = `news_db:categories:${category}`;
         const categoryList = (await kv.get(categoryKey, { type: 'json' })) || [];
         categoryList.push(id);
         await kv.put(categoryKey, JSON.stringify(categoryList));
 
-        // Update breaking news index
         if (articleData.isBreaking) {
           const breakingList = (await kv.get('news_db:breaking', { type: 'json' })) || [];
           breakingList.push(id);
@@ -150,7 +138,6 @@ export default {
         });
       }
 
-      // Handle PUT /api/news/:id (authenticated)
       if (url.pathname.startsWith('/api/news/') && method === 'PUT') {
         await authenticateToken(request.headers);
         const id = url.pathname.split('/')[3];
@@ -176,10 +163,8 @@ export default {
           image: image || existingArticle.image,
         };
 
-        // Update article
         await kv.put(`news_db:articles:${id}`, JSON.stringify(updatedArticle));
 
-        // Update category index if changed
         if (category && category !== oldCategory) {
           const oldCategoryList = (await kv.get(`news_db:categories:${oldCategory}`, { type: 'json' })) || [];
           await kv.put(`news_db:categories:${oldCategory}`, JSON.stringify(oldCategoryList.filter(articleId => articleId !== id)));
@@ -188,7 +173,6 @@ export default {
           await kv.put(`news_db:categories:${category}`, JSON.stringify(newCategoryList));
         }
 
-        // Update breaking news index if changed
         if (isBreaking !== undefined && (isBreaking === 'true' || isBreaking === true) !== oldIsBreaking) {
           let breakingList = (await kv.get('news_db:breaking', { type: 'json' })) || [];
           if (updatedArticle.isBreaking) {
@@ -204,7 +188,6 @@ export default {
         });
       }
 
-      // Handle DELETE /api/news/:id (authenticated)
       if (url.pathname.startsWith('/api/news/') && method === 'DELETE') {
         await authenticateToken(request.headers);
         const id = url.pathname.split('/')[3];
@@ -216,17 +199,14 @@ export default {
           });
         }
 
-        // Remove from category index
         const categoryList = (await kv.get(`news_db:categories:${article.category}`, { type: 'json' })) || [];
         await kv.put(`news_db:categories:${article.category}`, JSON.stringify(categoryList.filter(articleId => articleId !== id)));
 
-        // Remove from breaking news index
         if (article.isBreaking) {
           const breakingList = (await kv.get('news_db:breaking', { type: 'json' })) || [];
           await kv.put('news_db:breaking', JSON.stringify(breakingList.filter(articleId => articleId !== id)));
         }
 
-        // Delete article
         await kv.delete(`news_db:articles:${id}`);
 
         return new Response(JSON.stringify({ message: 'Article deleted' }), {
@@ -234,11 +214,9 @@ export default {
         });
       }
 
-      // Handle GET /db (web interface to view data, authenticated)
       if (url.pathname === '/db' && method === 'GET') {
-        await authenticateToken(request.headers); // Require admin token
+        await authenticateToken(request.headers);
 
-        // Fetch all articles
         const articleKeys = await kv.list({ prefix: 'news_db:articles:' });
         const articles = [];
         for (const key of articleKeys.keys) {
@@ -246,7 +224,6 @@ export default {
           if (article) articles.push(article);
         }
 
-        // Fetch all users
         const userKeys = await kv.list({ prefix: 'news_db:users:' });
         const users = [];
         for (const key of userKeys.keys) {
@@ -254,7 +231,6 @@ export default {
           if (user) users.push(user);
         }
 
-        // Generate HTML
         let html = `
           <html>
             <head>

@@ -42,7 +42,7 @@ const NewArticle: React.FC = () => {
       };
       console.log('NewArticle: Submitting draftData:', draftData);
 
-      const response = await fetch(`http://localhost:5000/api/news`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -58,39 +58,16 @@ const NewArticle: React.FC = () => {
         image: responseData.image,
       });
 
-      const newArticleId = responseData._id || `mock-${Date.now()}`;
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Failed to create draft article');
+      }
+
+      const newArticleId = responseData._id;
       const newArticle = {
         ...draftData,
         _id: newArticleId,
         path: `/news/${newArticleId}`,
       };
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          console.log('NewArticle: 403 detected, mocking draft');
-          // Update caches
-          queryClient.setQueryData(['articles'], (old: any) => {
-            const newData = old ? [...old, newArticle] : [newArticle];
-            console.log('NewArticle: Updated articles cache:', newData);
-            return newData;
-          });
-          queryClient.setQueryData(['article', newArticleId], newArticle);
-          // Invalidate caches
-          await queryClient.invalidateQueries({ queryKey: ['articles'] });
-          await queryClient.invalidateQueries({ queryKey: ['article', newArticleId] });
-          console.log('NewArticle: Invalidated caches');
-          console.log('NewArticle: Articles cache:', queryClient.getQueryData(['articles']));
-          console.log('NewArticle: Article cache:', queryClient.getQueryData(['article', newArticleId]));
-          toast({
-            title: "Draft created (mocked)",
-            description: "Draft created locally. Redirecting to edit page.",
-          });
-          // Delay redirect to ensure cache is set
-          setTimeout(() => navigate(`/admin/edit/${newArticleId}`), 500);
-          return;
-        }
-        throw new Error(responseData.error || 'Failed to create draft article');
-      }
 
       // Update caches on success
       queryClient.setQueryData(['articles'], (old: any) => {
@@ -110,7 +87,6 @@ const NewArticle: React.FC = () => {
         title: "Draft created",
         description: "Redirecting to edit page.",
       });
-      // Delay redirect to ensure cache is set
       setTimeout(() => navigate(`/admin/edit/${newArticleId}`), 500);
     } catch (error) {
       console.error('NewArticle: Draft creation error:', error);

@@ -10,6 +10,31 @@ const ArticlePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { data: article, isLoading, error } = useArticleById(id!);
 
+  const shareArticle = (platform: string) => {
+    const url = encodeURIComponent(window.location.href);
+    const title = encodeURIComponent(article.title);
+    let shareUrl = '';
+
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${title}`;
+        break;
+      case 'linkedin':
+        shareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=${title}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://api.whatsapp.com/send?text=${title}%20${url}`;
+        break;
+      default:
+        return;
+    }
+
+    window.open(shareUrl, '_blank', 'noopener,noreferrer');
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -84,10 +109,30 @@ const ArticlePage: React.FC = () => {
             <div className="mt-8 pt-8 border-t border-gray-200">
               <h3 className="text-xl font-bold mb-4">Share this article</h3>
               <div className="flex space-x-3">
-                <button className="px-4 py-2 bg-[#1877f2] text-white rounded">Facebook</button>
-                <button className="px-4 py-2 bg-[#1da1f2] text-white rounded">Twitter</button>
-                <button className="px-4 py-2 bg-[#0a66c2] text-white rounded">LinkedIn</button>
-                <button className="px-4 py-2 bg-[#25D366] text-white rounded">WhatsApp</button>
+                <button 
+                  onClick={() => shareArticle('facebook')} 
+                  className="px-4 py-2 bg-[#1877f2] text-white rounded hover:bg-[#1566d8] transition-colors"
+                >
+                  Facebook
+                </button>
+                <button 
+                  onClick={() => shareArticle('twitter')} 
+                  className="px-4 py-2 bg-[#1da1f2] text-white rounded hover:bg-[#1a91da] transition-colors"
+                >
+                  Twitter
+                </button>
+                <button 
+                  onClick={() => shareArticle('linkedin')} 
+                  className="px-4 py-2 bg-[#0a66c2] text-white rounded hover:bg-[#0858a8] transition-colors"
+                >
+                  LinkedIn
+                </button>
+                <button 
+                  onClick={() => shareArticle('whatsapp')} 
+                  className="px-4 py-2 bg-[#25D366] text-white rounded hover:bg-[#22c05a] transition-colors"
+                >
+                  WhatsApp
+                </button>
               </div>
             </div>
             <div className="mt-8 pt-8 border-t border-gray-200">

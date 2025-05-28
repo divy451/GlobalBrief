@@ -20,7 +20,6 @@ const CategoryPage: React.FC = () => {
           {categoryName} News
         </h1>
         
-        {/* Category description */}
         <p className="text-gray-600 mb-8">
           Stay updated with the latest {categoryName.toLowerCase()} news and developments from around the globe.
         </p>
@@ -31,14 +30,14 @@ const CategoryPage: React.FC = () => {
               <LoadingSpinner />
             ) : error ? (
               <div className="text-center py-12">
-                <p className="text-gray-600">Failed to load articles.</p>
+                <p className="text-red-600">Failed to load articles: {error.message}</p>
               </div>
             ) : articles && articles.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                   {articles.slice(0, 8).map((article) => (
                     <NewsCard
-                      key={article.id}
+                      key={article._id}
                       {...article}
                     />
                   ))}
@@ -50,7 +49,7 @@ const CategoryPage: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                     {articles.slice(8).map((article) => (
                       <NewsCard
-                        key={article.id}
+                        key={article._id}
                         {...article}
                       />
                     ))}

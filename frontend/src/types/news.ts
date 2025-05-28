@@ -1,9 +1,9 @@
 export interface Article {
-  id: string;
+  _id: string;
   title: string;
   excerpt: string;
   content: string;
-  image: string; // Path to uploaded image, e.g., /uploads/image.jpg
+  image: string;
   category: string;
   date: string;
   author: string;
@@ -18,11 +18,11 @@ export interface Category {
 }
 
 export interface BreakingNewsItem {
-  id: string;
+  _id: string;
   title: string;
   category: string;
   date: string;
-  image: string; // Path to uploaded image, e.g., /uploads/image.jpg
+  image: string;
   path?: string;
   isBreaking: boolean;
 }
