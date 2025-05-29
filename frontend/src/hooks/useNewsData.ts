@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Article, Category, BreakingNewsItem } from "../types/news";
 import { categories } from "../data/mockData";
 
-// Interface for API article response
 interface ApiArticle {
   _id: string;
   title: string;
@@ -27,12 +26,20 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
   if (token) headers['Authorization'] = `Bearer ${token}`;
   
   const apiUrl = 'https://news-api.poddara766.workers.dev';
-  const response = await fetch(`${apiUrl}/api/news${query.toString() ? '?' + query : ''}`, {
+  const url = `${apiUrl}/api/news${query.toString() ? '?' + query : ''}`;
+  console.log(`fetchArticles: Requesting URL: ${url}`);
+  const response = await fetch(url, {
     headers,
   });
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    console.error('fetchArticles: Fetch error:', errorData.error || response.statusText);
+    const errorText = await response.text();
+    console.error(`fetchArticles: Fetch error for URL ${url}: Status ${response.status}, Response: ${errorText}`);
+    let errorData;
+    try {
+      errorData = JSON.parse(errorText);
+    } catch (e) {
+      throw new Error(`Failed to fetch articles: ${errorText}`);
+    }
     throw new Error(errorData.error || 'Failed to fetch articles');
   }
   const articles: ApiArticle[] = await response.json();
@@ -56,12 +63,20 @@ const fetchArticleById = async (id: string): Promise<Article> => {
   const apiUrl = 'https://news-api.poddara766.workers.dev';
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const response = await fetch(`${apiUrl}/api/news/${id}`, {
+  const url = `${apiUrl}/api/news/${id}`;
+  console.log(`fetchArticleById: Requesting URL: ${url}`);
+  const response = await fetch(url, {
     headers,
   });
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    console.error('fetchArticleById: Fetch error:', errorData.error || response.statusText);
+    const errorText = await response.text();
+    console.error(`fetchArticleById: Fetch error for URL ${url}: Status ${response.status}, Response: ${errorText}`);
+    let errorData;
+    try {
+      errorData = JSON.parse(errorText);
+    } catch (e) {
+      throw new Error(`Failed to fetch article: ${errorText}`);
+    }
     throw new Error(errorData.error || 'Failed to fetch article');
   }
   const article: ApiArticle = await response.json();

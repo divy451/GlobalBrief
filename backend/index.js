@@ -24,6 +24,9 @@ export default {
       const method = request.method;
       const kv = env.NEWS_KV;
 
+      // Log the incoming request URL and method
+      console.log(`Request received: ${method} ${url.pathname}${url.search}`);
+
       const authenticateToken = async (headers) => {
         const authHeader = headers.get('authorization');
         const token = authHeader && authHeader.split(' ')[1];
@@ -36,7 +39,6 @@ export default {
         }
       };
 
-      // Handle POST /auth/login
       if (url.pathname === '/auth/login' && method === 'POST') {
         const { username, password } = await request.json();
         const user = await kv.get(`news_db:users:${username}`, { type: 'json' });
@@ -52,23 +54,30 @@ export default {
         });
       }
 
-      if (url.pathname === '/api/news' && method === 'GET') {
+      const normalizedPathname = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
+
+      if (normalizedPathname === '/api/news' && method === 'GET') {
         try {
           const urlQuery = url.searchParams;
           let articleIds = [];
 
           if (urlQuery.has('category')) {
             const category = urlQuery.get('category');
+            console.log(`Fetching articles for category: ${category}`);
             articleIds = (await kv.get(`news_db:categories:${category}`, { type: 'json' })) || [];
           } else if (urlQuery.has('isBreaking')) {
             const isBreaking = urlQuery.get('isBreaking') === 'true';
             if (isBreaking) {
+              console.log('Fetching breaking news');
               articleIds = (await kv.get('news_db:breaking', { type: 'json' })) || [];
             }
           } else {
+            console.log('Fetching all articles');
             const keys = await kv.list({ prefix: 'news_db:articles:' });
             articleIds = keys.keys.map(key => key.name.split(':')[2]);
           }
+
+          console.log(`Article IDs found: ${JSON.stringify(articleIds)}`);
 
           const limit = urlQuery.has('limit') ? Number(urlQuery.get('limit')) : articleIds.length;
           articleIds = articleIds.slice(0, limit);
@@ -79,10 +88,13 @@ export default {
             if (article) articles.push(article);
           }
 
+          console.log(`Articles fetched: ${JSON.stringify(articles)}`);
+
           return new Response(JSON.stringify(articles), {
             headers: corsHeaders,
           });
         } catch (error) {
+          console.error(`Error in /api/news GET: ${error.message}`);
           return new Response(JSON.stringify({ error: 'Failed to fetch articles: ' + error.message }), {
             status: 500,
             headers: corsHeaders,
@@ -90,8 +102,8 @@ export default {
         }
       }
 
-      if (url.pathname.startsWith('/api/news/') && method === 'GET') {
-        const id = url.pathname.split('/')[3];
+      if (normalizedPathname.startsWith('/api/news/') && method === 'GET') {
+        const id = normalizedPathname.split('/')[3];
         const article = await kv.get(`news_db:articles:${id}`, { type: 'json' });
         if (!article) {
           return new Response(JSON.stringify({ error: 'Article not found' }), {
@@ -104,7 +116,7 @@ export default {
         });
       }
 
-      if (url.pathname === '/api/news' && method === 'POST') {
+      if (normalizedPathname === '/api/news' && method === 'POST') {
         await authenticateToken(request.headers);
         const { title, content, category, author, excerpt, isBreaking, image } = await request.json();
         if (!title || !content || !category) {
@@ -145,9 +157,9 @@ export default {
         });
       }
 
-      if (url.pathname.startsWith('/api/news/') && method === 'PUT') {
+      if (normalizedPathname.startsWith('/api/news/') && method === 'PUT') {
         await authenticateToken(request.headers);
-        const id = url.pathname.split('/')[3];
+        const id = normalizedPathname.split('/')[3];
         const existingArticle = await kv.get(`news_db:articles:${id}`, { type: 'json' });
         if (!existingArticle) {
           return new Response(JSON.stringify({ error: 'Article not found' }), {
@@ -195,9 +207,9 @@ export default {
         });
       }
 
-      if (url.pathname.startsWith('/api/news/') && method === 'DELETE') {
+      if (normalizedPathname.startsWith('/api/news/') && method === 'DELETE') {
         await authenticateToken(request.headers);
-        const id = url.pathname.split('/')[3];
+        const id = normalizedPathname.split('/')[3];
         const article = await kv.get(`news_db:articles:${id}`, { type: 'json' });
         if (!article) {
           return new Response(JSON.stringify({ error: 'Article not found' }), {
@@ -221,8 +233,7 @@ export default {
         });
       }
 
-      if (url.pathname === '/db' && method === 'GET') {
-        // Restrict /db endpoint in production
+      if (normalizedPathname === '/db' && method === 'GET') {
         if (env.ENVIRONMENT === 'production') {
           return new Response(JSON.stringify({ error: 'Endpoint not available in production' }), {
             status: 403,
@@ -311,11 +322,12 @@ export default {
         });
       }
 
-      return new Response('Not Found', {
+      return new Response(JSON.stringify({ error: 'Not Found' }), {
         status: 404,
         headers: corsHeaders,
       });
     } catch (error) {
+      console.error(`Server error: ${error.message}`);
       return new Response(JSON.stringify({ error: error.message || 'Server Error' }), {
         status: error.message === 'Access denied' || error.message === 'Invalid token' ? 401 : 500,
         headers: corsHeaders,
