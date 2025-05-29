@@ -53,34 +53,41 @@ export default {
       }
 
       if (url.pathname === '/api/news' && method === 'GET') {
-        const urlQuery = url.searchParams;
-        let articleIds = [];
+        try {
+          const urlQuery = url.searchParams;
+          let articleIds = [];
 
-        if (urlQuery.has('category')) {
-          const category = urlQuery.get('category');
-          articleIds = (await kv.get(`news_db:categories:${category}`, { type: 'json' })) || [];
-        } else if (urlQuery.has('isBreaking')) {
-          const isBreaking = urlQuery.get('isBreaking') === 'true';
-          if (isBreaking) {
-            articleIds = (await kv.get('news_db:breaking', { type: 'json' })) || [];
+          if (urlQuery.has('category')) {
+            const category = urlQuery.get('category');
+            articleIds = (await kv.get(`news_db:categories:${category}`, { type: 'json' })) || [];
+          } else if (urlQuery.has('isBreaking')) {
+            const isBreaking = urlQuery.get('isBreaking') === 'true';
+            if (isBreaking) {
+              articleIds = (await kv.get('news_db:breaking', { type: 'json' })) || [];
+            }
+          } else {
+            const keys = await kv.list({ prefix: 'news_db:articles:' });
+            articleIds = keys.keys.map(key => key.name.split(':')[2]);
           }
-        } else {
-          const keys = await kv.list({ prefix: 'news_db:articles:' });
-          articleIds = keys.keys.map(key => key.name.split(':')[2]);
+
+          const limit = urlQuery.has('limit') ? Number(urlQuery.get('limit')) : articleIds.length;
+          articleIds = articleIds.slice(0, limit);
+
+          const articles = [];
+          for (const id of articleIds) {
+            const article = await kv.get(`news_db:articles:${id}`, { type: 'json' });
+            if (article) articles.push(article);
+          }
+
+          return new Response(JSON.stringify(articles), {
+            headers: corsHeaders,
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({ error: 'Failed to fetch articles: ' + error.message }), {
+            status: 500,
+            headers: corsHeaders,
+          });
         }
-
-        const limit = urlQuery.has('limit') ? Number(urlQuery.get('limit')) : articleIds.length;
-        articleIds = articleIds.slice(0, limit);
-
-        const articles = [];
-        for (const id of articleIds) {
-          const article = await kv.get(`news_db:articles:${id}`, { type: 'json' });
-          if (article) articles.push(article);
-        }
-
-        return new Response(JSON.stringify(articles), {
-          headers: corsHeaders,
-        });
       }
 
       if (url.pathname.startsWith('/api/news/') && method === 'GET') {

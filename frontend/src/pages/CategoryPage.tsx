@@ -6,10 +6,13 @@ import Advertisement from '@/components/common/Advertisement';
 import Sidebar from '@/components/news/Sidebar';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useCategoryArticles } from '@/hooks/useNewsData';
+import { categories } from '@/data/mockData';
 
 const CategoryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const categoryName = slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : '';
+  // Find the category from mockData to ensure the name matches the backend
+  const category = categories.find(cat => cat.path.toLowerCase() === `/category/${slug?.toLowerCase()}`);
+  const categoryName = category ? category.name : (slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : '');
   
   const { data: articles, isLoading, error } = useCategoryArticles(categoryName, 12);
 

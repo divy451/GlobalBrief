@@ -11,6 +11,7 @@ import {
   useCategoryArticles 
 } from '@/hooks/useNewsData';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { categories } from '@/data/mockData'; // Import categories to ensure consistency
 
 const Index: React.FC = () => {
   const { data: breakingNewsData, isLoading: isLoadingBreaking, error: breakingError } = useBreakingNews();
@@ -101,7 +102,7 @@ const Index: React.FC = () => {
                 </section>
               ) : (
                 <CategoryNews 
-                  category={{ name: "World News", path: "/category/World" }}
+                  category={categories.find(cat => cat.name === 'World') || { name: 'World', path: '/category/World' }}
                   articles={worldNewsData || []}
                 />
               )}
@@ -117,7 +118,7 @@ const Index: React.FC = () => {
                 </section>
               ) : (
                 <CategoryNews 
-                  category={{ name: "Technology News", path: "/category/Technology" }}
+                  category={categories.find(cat => cat.name === 'Technology') || { name: 'Technology', path: '/category/Technology' }}
                   articles={technologyNewsData || []}
                 />
               )}
@@ -137,7 +138,7 @@ const Index: React.FC = () => {
                 </section>
               ) : (
                 <CategoryNews 
-                  category={{ name: "Business News", path: "/category/Business" }}
+                  category={categories.find(cat => cat.name === 'Business') || { name: 'Business', path: '/category/Business' }}
                   articles={businessNewsData || []}
                 />
               )}
@@ -153,7 +154,7 @@ const Index: React.FC = () => {
                 </section>
               ) : (
                 <CategoryNews 
-                  category={{ name: "Sports News", path: "/category/Sports" }}
+                  category={categories.find(cat => cat.name === 'Sports') || { name: 'Sports', path: '/category/Sports' }}
                   articles={sportsNewsData || []}
                 />
               )}

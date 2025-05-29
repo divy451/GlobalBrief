@@ -52,10 +52,10 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
 };
 
 const fetchArticleById = async (id: string): Promise<Article> => {
-  const token = localStorage.getItem('admin_token'); // Add token retrieval
+  const token = localStorage.getItem('admin_token');
   const apiUrl = 'https://news-api.poddara766.workers.dev';
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`; // Include token in headers
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   const response = await fetch(`${apiUrl}/api/news/${id}`, {
     headers,
   });
