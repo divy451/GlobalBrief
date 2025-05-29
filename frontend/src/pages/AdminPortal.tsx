@@ -20,21 +20,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useNewsData } from '@/hooks/useNewsData';
+import { Article } from '@/types/news';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useToast } from "@/components/ui/use-toast";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-
-interface Article {
-  id: string;
-  title: string;
-  category: string;
-  date: string;
-  author: string;
-  content: string;
-  excerpt: string;
-  image: string;
-  isBreaking: boolean;
-}
 
 const updateArticleBreaking = async ({ id, article }: { id: string; article: Article }) => {
   const token = localStorage.getItem('admin_token');
@@ -134,7 +123,6 @@ const AdminPortal: React.FC = () => {
       }
 
       try {
-        // Make a simple authenticated request to validate the token
         const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news`, {
           headers: {
             'Authorization': `Bearer ${token}`,

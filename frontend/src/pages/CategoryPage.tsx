@@ -37,19 +37,19 @@ const CategoryPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                   {articles.slice(0, 8).map((article) => (
                     <NewsCard
-                      key={article._id}
+                      key={article.id}
                       {...article}
                     />
                   ))}
                 </div>
                 
-                <Advertisement type="banner" adSlot="3686800815" adClient="ca-pub-9084229487967369" />
+                <Advertisement type="banner" adSlot="3686800815" adClient="ca-pub-9084229712463529" />
                 
                 {articles.length > 8 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                     {articles.slice(8).map((article) => (
                       <NewsCard
-                        key={article._id}
+                        key={article.id}
                         {...article}
                       />
                     ))}

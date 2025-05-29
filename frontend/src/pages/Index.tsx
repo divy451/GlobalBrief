@@ -12,17 +12,6 @@ import {
 } from '@/hooks/useNewsData';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
-interface Article {
-  _id: string;
-  title: string;
-  excerpt: string;
-  image: string;
-  category: string;
-  date: string;
-  path?: string;
-  isBreaking: boolean;
-}
-
 const Index: React.FC = () => {
   const { data: breakingNewsData, isLoading: isLoadingBreaking, error: breakingError } = useBreakingNews();
   const { data: featuredArticlesData, isLoading: isLoadingFeatured, error: featuredError } = useFeaturedArticles();

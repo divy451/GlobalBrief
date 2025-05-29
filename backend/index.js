@@ -36,7 +36,7 @@ export default {
         }
       };
 
-      // Handle POST /auth/login (changed from /api/auth/login)
+      // Handle POST /auth/login
       if (url.pathname === '/auth/login' && method === 'POST') {
         const { username, password } = await request.json();
         const user = await kv.get(`news_db:users:${username}`, { type: 'json' });
@@ -215,6 +215,14 @@ export default {
       }
 
       if (url.pathname === '/db' && method === 'GET') {
+        // Restrict /db endpoint in production
+        if (env.ENVIRONMENT === 'production') {
+          return new Response(JSON.stringify({ error: 'Endpoint not available in production' }), {
+            status: 403,
+            headers: corsHeaders,
+          });
+        }
+
         await authenticateToken(request.headers);
 
         const articleKeys = await kv.list({ prefix: 'news_db:articles:' });

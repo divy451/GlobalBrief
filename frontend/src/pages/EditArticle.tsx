@@ -39,7 +39,7 @@ const EditArticle: React.FC = () => {
     const fetchArticle = async () => {
       setIsLoading(true);
       try {
-        if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+        if (!id || !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id)) {
           throw new Error('Invalid article ID');
         }
         const token = localStorage.getItem('admin_token');

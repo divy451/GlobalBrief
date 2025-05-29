@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Article, Category, BreakingNewsItem } from "../types/news";
 import { categories } from "../data/mockData";
 
-// Interface for MongoDB article response
+// Interface for API article response
 interface ApiArticle {
   _id: string;
   title: string;
@@ -52,8 +52,13 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
 };
 
 const fetchArticleById = async (id: string): Promise<Article> => {
+  const token = localStorage.getItem('admin_token'); // Add token retrieval
   const apiUrl = 'https://news-api.poddara766.workers.dev';
-  const response = await fetch(`${apiUrl}/api/news/${id}`);
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`; // Include token in headers
+  const response = await fetch(`${apiUrl}/api/news/${id}`, {
+    headers,
+  });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     console.error('fetchArticleById: Fetch error:', errorData.error || response.statusText);

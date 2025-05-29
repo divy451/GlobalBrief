@@ -87,11 +87,11 @@ const ArticlePage: React.FC = () => {
             <figure className="mb-8">
               <img 
                 src={article.image} 
-                alt={article.title} 
+                alt={`Image for article: ${article.title}`} 
                 className="w-full h-auto rounded-lg"
                 onError={(e) => {
-                  if (e.currentTarget.src !== '/assets/fallback-image.jpg') {
-                    e.currentTarget.src = '/assets/fallback-image.jpg';
+                  if (e.currentTarget.src !== 'https://via.placeholder.com/400x300?text=Image+Not+Found') {
+                    e.currentTarget.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found';
                     e.currentTarget.onerror = null;
                   }
                 }}

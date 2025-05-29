@@ -69,14 +69,12 @@ const NewArticle: React.FC = () => {
         path: `/news/${newArticleId}`,
       };
 
-      // Update caches on success
       queryClient.setQueryData(['articles'], (old: any) => {
         const newData = old ? [...old, newArticle] : [newArticle];
         console.log('NewArticle: Updated articles cache (success):', newData);
         return newData;
       });
       queryClient.setQueryData(['article', newArticleId], newArticle);
-      // Invalidate caches
       await queryClient.invalidateQueries({ queryKey: ['articles'] });
       await queryClient.invalidateQueries({ queryKey: ['article', newArticleId] });
       console.log('NewArticle: Invalidated caches (success)');
