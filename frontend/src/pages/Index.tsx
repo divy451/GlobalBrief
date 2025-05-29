@@ -8,26 +8,30 @@ import Sidebar from '@/components/news/Sidebar';
 import { 
   useBreakingNews, 
   useFeaturedArticles, 
-  useCategoryArticles 
+  useCategoryArticles,
+  useCategories 
 } from '@/hooks/useNewsData';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { categories } from '@/data/mockData'; // Import categories to ensure consistency
 
 const Index: React.FC = () => {
   const { data: breakingNewsData, isLoading: isLoadingBreaking, error: breakingError } = useBreakingNews();
   const { data: featuredArticlesData, isLoading: isLoadingFeatured, error: featuredError } = useFeaturedArticles();
-  const { data: worldNewsData, isLoading: worldLoading, error: worldError, isError: worldIsError } = useCategoryArticles('World', 5);
-  const { data: technologyNewsData, isLoading: techLoading, error: techError, isError: techIsError } = useCategoryArticles('Technology', 5);
-  const { data: businessNewsData, isLoading: businessLoading, error: businessError, isError: businessIsError } = useCategoryArticles('Business', 5);
-  const { data: sportsNewsData, isLoading: sportsLoading, error: sportsError, isError: sportsIsError } = useCategoryArticles('Sports', 5);
+  const { data: categories, isLoading: categoriesLoading, error: categoriesError } = useCategories();
+
+  // Fetch articles for each category dynamically
+  const categoryQueries = categories?.map(category => ({
+    name: category.name,
+    path: category.path,
+    query: useCategoryArticles(category.name, 5)
+  })) || [];
 
   useEffect(() => {
     console.log('Index: breakingNewsData:', breakingNewsData);
     console.log('Index: featuredArticlesData:', featuredArticlesData);
-    console.log('Index: worldNewsData:', worldNewsData, 'worldError:', worldError, 'worldIsError:', worldIsError);
-    console.log('Index: technologyNewsData:', technologyNewsData, 'techError:', techError, 'techIsError:', techIsError);
-    console.log('Index: businessNewsData:', businessNewsData, 'businessError:', businessError, 'businessIsError:', businessIsError);
-    console.log('Index: sportsNewsData:', sportsNewsData, 'sportsError:', sportsError, 'sportsIsError:', sportsIsError);
+    console.log('Index: categories:', categories);
+    categoryQueries.forEach(({ name, query }) => {
+      console.log(`Index: ${name}NewsData:`, query.data, `${name}Error:`, query.error, `${name}IsError:`, query.isError);
+    });
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -46,7 +50,7 @@ const Index: React.FC = () => {
     });
 
     return () => observer.disconnect();
-  }, [worldNewsData, technologyNewsData, businessNewsData, sportsNewsData, worldError, techError, businessError, sportsError]);
+  }, [categories, categoryQueries.map(query => query.query.data), categoryQueries.map(query => query.query.error)]);
 
   return (
     <MainLayout>
@@ -92,73 +96,44 @@ const Index: React.FC = () => {
               <Advertisement type="banner" adSlot="5791313880" />
             </div>
             
-            <div className="lazy-animate">
-              {worldLoading ? (
-                <LoadingSpinner />
-              ) : worldIsError ? (
-                <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
-                  <h2 className="text-2xl font-semibold mb-4">World News</h2>
-                  <p className="text-red-600 text-lg">Error loading world news: {worldError?.message || 'Unknown error'}</p>
-                </section>
-              ) : (
-                <CategoryNews 
-                  category={categories.find(cat => cat.name === 'World') || { name: 'World', path: '/category/World' }}
-                  articles={worldNewsData || []}
-                />
-              )}
-            </div>
-            
-            <div className="lazy-animate">
-              {techLoading ? (
-                <LoadingSpinner />
-              ) : techIsError ? (
-                <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
-                  <h2 className="text-2xl font-semibold mb-4">Technology News</h2>
-                  <p className="text-red-600 text-lg">Error loading technology news: {techError?.message || 'Unknown error'}</p>
-                </section>
-              ) : (
-                <CategoryNews 
-                  category={categories.find(cat => cat.name === 'Technology') || { name: 'Technology', path: '/category/Technology' }}
-                  articles={technologyNewsData || []}
-                />
-              )}
-            </div>
-            
-            <div className="py-8 lazy-animate">
-              <Advertisement type="banner" adSlot="5036327926" />
-            </div>
-            
-            <div className="lazy-animate">
-              {businessLoading ? (
-                <LoadingSpinner />
-              ) : businessIsError ? (
-                <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
-                  <h2 className="text-2xl font-semibold mb-4">Business News</h2>
-                  <p className="text-red-600 text-lg">Error loading business news: {businessError?.message || 'Unknown error'}</p>
-                </section>
-              ) : (
-                <CategoryNews 
-                  category={categories.find(cat => cat.name === 'Business') || { name: 'Business', path: '/category/Business' }}
-                  articles={businessNewsData || []}
-                />
-              )}
-            </div>
-            
-            <div className="lazy-animate">
-              {sportsLoading ? (
-                <LoadingSpinner />
-              ) : sportsIsError ? (
-                <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
-                  <h2 className="text-2xl font-semibold mb-4">Sports News</h2>
-                  <p className="text-red-600 text-lg">Error loading sports news: {sportsError?.message || 'Unknown error'}</p>
-                </section>
-              ) : (
-                <CategoryNews 
-                  category={categories.find(cat => cat.name === 'Sports') || { name: 'Sports', path: '/category/Sports' }}
-                  articles={sportsNewsData || []}
-                />
-              )}
-            </div>
+            {categoriesLoading ? (
+              <LoadingSpinner />
+            ) : categoriesError ? (
+              <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
+                <h2 className="text-2xl font-semibold mb-4">Categories</h2>
+                <p className="text-red-600 text-lg">Error loading categories: {categoriesError.message}</p>
+              </section>
+            ) : categoryQueries.length > 0 ? (
+              categoryQueries.map(({ name, path, query }, index) => (
+                <div key={name} className="lazy-animate">
+                  {query.isLoading ? (
+                    <LoadingSpinner />
+                  ) : query.isError ? (
+                    <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
+                      <h2 className="text-2xl font-semibold mb-4">{name} News</h2>
+                      <p className="text-red-600 text-lg">Error loading {name.toLowerCase()} news: {query.error?.message || 'Unknown error'}</p>
+                    </section>
+                  ) : (
+                    <>
+                      <CategoryNews 
+                        category={{ name, path }}
+                        articles={query.data || []}
+                      />
+                      {index % 2 === 1 && index !== categoryQueries.length - 1 && (
+                        <div className="py-8 lazy-animate">
+                          <Advertisement type="banner" adSlot="5036327926" />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))
+            ) : (
+              <section className="mb-12 p-4 border border-gray-200 rounded-lg bg-white">
+                <h2 className="text-2xl font-semibold mb-4">Categories</h2>
+                <p className="text-gray-600 text-lg">No categories available.</p>
+              </section>
+            )}
           </div>
           
           <div className="lazy-animate">

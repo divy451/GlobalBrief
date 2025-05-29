@@ -56,6 +56,27 @@ export default {
 
       const normalizedPathname = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
 
+      // New endpoint to fetch all categories
+      if (normalizedPathname === '/api/categories' && method === 'GET') {
+        console.log('Fetching all categories');
+        const categoryKeys = await kv.list({ prefix: 'news_db:categories:' });
+        const categories = categoryKeys.keys.map(key => {
+          const categoryName = key.name.split(':')[2];
+          // Convert category name to a slug for the path (e.g., "Indo-Pak Tension" to "Indo-Pak-Tension")
+          const slug = categoryName.replace(/\s+/g, '-');
+          return {
+            name: categoryName,
+            path: `/category/${slug}`
+          };
+        });
+
+        console.log(`Categories fetched: ${JSON.stringify(categories)}`);
+
+        return new Response(JSON.stringify(categories), {
+          headers: corsHeaders,
+        });
+      }
+
       if (normalizedPathname === '/api/news' && method === 'GET') {
         try {
           const urlQuery = url.searchParams;

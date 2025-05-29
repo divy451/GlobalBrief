@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { Article, Category, BreakingNewsItem } from "../types/news";
-import { categories } from "../data/mockData";
 
 interface ApiArticle {
   _id: string;
@@ -113,6 +112,25 @@ const fetchFeaturedArticles = async (): Promise<Article[]> => {
 };
 
 const fetchCategories = async (): Promise<Category[]> => {
+  const apiUrl = 'https://news-api.poddara766.workers.dev';
+  const url = `${apiUrl}/api/categories`;
+  console.log(`fetchCategories: Requesting URL: ${url}`);
+  const response = await fetch(url, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`fetchCategories: Fetch error for URL ${url}: Status ${response.status}, Response: ${errorText}`);
+    let errorData;
+    try {
+      errorData = JSON.parse(errorText);
+    } catch (e) {
+      throw new Error(`Failed to fetch categories: ${errorText}`);
+    }
+    throw new Error(errorData.error || 'Failed to fetch categories');
+  }
+  const categories: Category[] = await response.json();
+  console.log('fetchCategories: Categories fetched:', categories);
   return categories;
 };
 
@@ -144,6 +162,7 @@ export function useCategories() {
   return useQuery<Category[], Error>({
     queryKey: ["categories"],
     queryFn: fetchCategories,
+    retry: 1,
   });
 }
 
