@@ -108,39 +108,31 @@ const ArticlePage: React.FC = () => {
             <Advertisement type="banner" adSlot="4133475647" />
             <div className="mt-8 pt-8 border-t border-gray-200">
               <h3 className="text-xl font-bold mb-4">Share this article</h3>
-              <div className="flex space-x-3">
+              <div className="flex space-x-3 overflow-x-auto pb-2">
                 <button 
                   onClick={() => shareArticle('facebook')} 
-                  className="px-4 py-2 bg-[#1877f2] text-white rounded hover:bg-[#1566d8] transition-colors"
+                  className="px-4 py-2 bg-[#1877f2] text-white rounded hover:bg-[#1566d8] transition-colors whitespace-nowrap"
                 >
                   Facebook
                 </button>
                 <button 
                   onClick={() => shareArticle('twitter')} 
-                  className="px-4 py-2 bg-[#1da1f2] text-white rounded hover:bg-[#1a91da] transition-colors"
+                  className="px-4 py-2 bg-[#1da1f2] text-white rounded hover:bg-[#1a91da] transition-colors whitespace-nowrap"
                 >
                   Twitter
                 </button>
                 <button 
                   onClick={() => shareArticle('linkedin')} 
-                  className="px-4 py-2 bg-[#0a66c2] text-white rounded hover:bg-[#0858a8] transition-colors"
+                  className="px-4 py-2 bg-[#0a66c2] text-white rounded hover:bg-[#0858a8] transition-colors whitespace-nowrap"
                 >
                   LinkedIn
                 </button>
                 <button 
                   onClick={() => shareArticle('whatsapp')} 
-                  className="px-4 py-2 bg-[#25D366] text-white rounded hover:bg-[#22c05a] transition-colors"
+                  className="px-4 py-2 bg-[#25D366] text-white rounded hover:bg-[#22c05a] transition-colors whitespace-nowrap"
                 >
                   WhatsApp
                 </button>
-              </div>
-            </div>
-            <div className="mt-8 pt-8 border-t border-gray-200">
-              <h3 className="text-xl font-bold mb-4">Comments</h3>
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <p className="text-center text-gray-600">
-                  Comments are disabled for this article.
-                </p>
               </div>
             </div>
           </div>

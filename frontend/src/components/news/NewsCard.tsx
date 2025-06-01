@@ -29,12 +29,12 @@ const NewsCard: React.FC<NewsCardProps> = ({
   const fallbackImage = '/assets/fallback-image.jpg';
 
   return (
-    <Card className={`news-card h-full ${horizontal ? 'flex flex-col md:flex-row' : ''} ${featured ? 'border-l-4 border-news-accent' : ''}`}>
-      <div className={`relative overflow-hidden ${horizontal ? 'md:w-1/3' : 'w-full'}`}>
+    <Card className={`news-card h-full ${horizontal ? 'flex flex-col md:flex-row min-w-[300px]' : 'min-w-[250px]'} ${featured ? 'border-l-4 border-news-accent' : ''}`}>
+      <div className={`relative overflow-hidden ${horizontal ? 'md:w-1/3 w-full' : 'w-full'}`}>
         <img 
           src={image} 
           alt={title}
-          className={`w-full h-48 md:h-auto object-cover ${horizontal ? 'md:h-full' : ''}`}
+          className={`w-full ${horizontal ? 'h-32 md:h-full' : 'h-48'} object-cover`}
           onError={(e) => {
             if (e.currentTarget.src !== fallbackImage) {
               e.currentTarget.src = fallbackImage;
@@ -49,7 +49,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
       </div>
-      <CardContent className={`p-4 ${horizontal ? 'md:w-2/3' : ''}`}>
+      <CardContent className={`p-4 ${horizontal ? 'md:w-2/3 w-full' : ''}`}>
         <Link to={path}>
           <h3 className={`font-bold mb-2 ${featured ? 'text-xl md:text-2xl' : compact ? 'text-base' : 'text-lg'} hover:text-news-accent transition-colors`}>
             {title}
