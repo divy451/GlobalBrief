@@ -70,7 +70,7 @@ const ShareButtons: React.FC<ShareButtonsProps> = ({ title, url }) => {
         variant="outline"
         size="sm"
         onClick={() => 
-          handleShare('Instagram', `https://www.instagram.com/?url=${encodedUrl}`) // Note: Instagram doesn't support direct sharing via URL, this opens Instagram with the URL
+          handleShare('Instagram', `https://www.instagram.com/?url=${encodedUrl}`)
         }
       >
         <Share className="mr-1 h-4 w-4" />

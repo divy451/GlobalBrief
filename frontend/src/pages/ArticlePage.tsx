@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import Advertisement from '@/components/common/Advertisement';
 import Sidebar from '@/components/news/Sidebar';
-import ShareButtons from '@/components/common/ShareButtons'; // Import the new ShareButtons component
+import ShareButtons from '@/components/news/ShareButtons'; // Import the new ShareButtons component
 import { formatDate } from '@/utils/formatDate';
 import { useArticleById } from '@/hooks/useNewsData';
 
