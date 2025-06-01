@@ -23,8 +23,8 @@ const ShareButtons: React.FC<ShareButtonsProps> = ({ title, url }) => {
   return (
     <div className="flex flex-wrap gap-2 my-4">
       <Button
+        variant="outline"
         size="sm"
-        className="px-4 py-2 bg-[#25D366] text-white rounded hover:bg-[#22c05a] transition-colors"
         onClick={() => 
           handleShare('WhatsApp', `https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`)
         }
@@ -34,8 +34,8 @@ const ShareButtons: React.FC<ShareButtonsProps> = ({ title, url }) => {
       </Button>
       
       <Button
+        variant="outline"
         size="sm"
-        className="px-4 py-2 bg-[#1da1f2] text-white rounded hover:bg-[#1a91da] transition-colors"
         onClick={() => 
           handleShare('Twitter', `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`)
         }
@@ -45,8 +45,8 @@ const ShareButtons: React.FC<ShareButtonsProps> = ({ title, url }) => {
       </Button>
       
       <Button
+        variant="outline"
         size="sm"
-        className="px-4 py-2 bg-[#0a66c2] text-white rounded hover:bg-[#0858a8] transition-colors"
         onClick={() => 
           handleShare('LinkedIn', `https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}`)
         }
@@ -56,8 +56,8 @@ const ShareButtons: React.FC<ShareButtonsProps> = ({ title, url }) => {
       </Button>
       
       <Button
+        variant="outline"
         size="sm"
-        className="px-4 py-2 bg-[#E1306C] text-white rounded hover:bg-[#c92b5f] transition-colors"
         onClick={() => 
           handleShare('Instagram', `https://www.instagram.com/?url=${encodedUrl}`)
         }
@@ -67,23 +67,8 @@ const ShareButtons: React.FC<ShareButtonsProps> = ({ title, url }) => {
       </Button>
       
       <Button
+        variant="outline"
         size="sm"
-        className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-        onClick={() => {
-          navigator.clipboard.writeText(window.location.href);
-          toast({
-            title: "Copied!",
-            description: "Link copied to clipboard",
-          });
-        }}
-      >
-        <Share className="mr-1 h-4 w-4" />
-        Copy Link
-      </Button>
-      
-      <Button
-        size="sm"
-        className="px-4 py-2 bg-[#1877f2] text-white rounded hover:bg-[#1566d8] transition-colors"
         onClick={() => 
           handleShare('Facebook', `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`)
         }
