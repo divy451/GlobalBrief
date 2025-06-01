@@ -8,8 +8,8 @@ import Sidebar from '@/components/news/Sidebar';
 import { 
   useBreakingNews, 
   useFeaturedArticles, 
-  useCategoryArticles,
-  useCategories 
+  useCategories,
+  useAllCategoryArticles 
 } from '@/hooks/useNewsData';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
@@ -18,12 +18,8 @@ const Index: React.FC = () => {
   const { data: featuredArticlesData, isLoading: isLoadingFeatured, error: featuredError } = useFeaturedArticles();
   const { data: categories, isLoading: categoriesLoading, error: categoriesError } = useCategories();
 
-  // Fetch articles for each category dynamically
-  const categoryQueries = categories?.map(category => ({
-    name: category.name,
-    path: category.path,
-    query: useCategoryArticles(category.name, 5)
-  })) || [];
+  // Ensure categories is defined before passing to useAllCategoryArticles
+  const categoryQueries = useAllCategoryArticles(categories || [], 5);
 
   useEffect(() => {
     console.log('Index: breakingNewsData:', breakingNewsData);
@@ -50,7 +46,7 @@ const Index: React.FC = () => {
     });
 
     return () => observer.disconnect();
-  }, [categories, categoryQueries.map(query => query.query.data), categoryQueries.map(query => query.query.error)]);
+  }, [breakingNewsData, featuredArticlesData, categories]); // Simplified dependencies
 
   return (
     <MainLayout>

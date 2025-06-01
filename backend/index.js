@@ -22,7 +22,13 @@ export default {
     try {
       const url = new URL(request.url);
       const method = request.method;
+
+      // Check if NEWS_KV binding is available
       const kv = env.NEWS_KV;
+      if (!kv) {
+        console.error('Error: NEWS_KV binding is undefined. Check wrangler.toml and deployment environment.');
+        throw new Error('NEWS_KV binding is not available');
+      }
 
       // Log the incoming request URL and method
       console.log(`Request received: ${method} ${url.pathname}${url.search}`);
@@ -56,13 +62,11 @@ export default {
 
       const normalizedPathname = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
 
-      // New endpoint to fetch all categories
       if (normalizedPathname === '/api/categories' && method === 'GET') {
         console.log('Fetching all categories');
         const categoryKeys = await kv.list({ prefix: 'news_db:categories:' });
         const categories = categoryKeys.keys.map(key => {
           const categoryName = key.name.split(':')[2];
-          // Convert category name to a slug for the path (e.g., "Indo-Pak Tension" to "Indo-Pak-Tension")
           const slug = categoryName.replace(/\s+/g, '-');
           return {
             name: categoryName,
@@ -340,6 +344,12 @@ export default {
 
         return new Response(html, {
           headers: { 'Content-Type': 'text/html' },
+        });
+      }
+
+      if (url.pathname === '/' && method === 'GET') {
+        return new Response(JSON.stringify({ message: "Welcome to the News API", status: "Operational" }), {
+          headers: corsHeaders,
         });
       }
 
