@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Share } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,17 @@ const ShareButtons: React.FC<ShareButtonsProps> = ({ title, url }) => {
 
   return (
     <div className="flex flex-wrap gap-2 my-4">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => 
+          handleShare('WhatsApp', `https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`)
+        }
+      >
+        <Share className="mr-1 h-4 w-4" />
+        WhatsApp
+      </Button>
+      
       <Button
         variant="outline"
         size="sm"
@@ -54,6 +64,17 @@ const ShareButtons: React.FC<ShareButtonsProps> = ({ title, url }) => {
       >
         <Share className="mr-1 h-4 w-4" />
         LinkedIn
+      </Button>
+      
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => 
+          handleShare('Instagram', `https://www.instagram.com/?url=${encodedUrl}`) // Note: Instagram doesn't support direct sharing via URL, this opens Instagram with the URL
+        }
+      >
+        <Share className="mr-1 h-4 w-4" />
+        Instagram
       </Button>
       
       <Button

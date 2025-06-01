@@ -3,37 +3,13 @@ import { Link, useParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import Advertisement from '@/components/common/Advertisement';
 import Sidebar from '@/components/news/Sidebar';
+import ShareButtons from '@/components/common/ShareButtons'; // Import the new ShareButtons component
 import { formatDate } from '@/utils/formatDate';
 import { useArticleById } from '@/hooks/useNewsData';
 
 const ArticlePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { data: article, isLoading, error } = useArticleById(id!);
-
-  const shareArticle = (platform: string) => {
-    const url = encodeURIComponent(window.location.href);
-    const title = encodeURIComponent(article.title);
-    let shareUrl = '';
-
-    switch (platform) {
-      case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
-        break;
-      case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${title}`;
-        break;
-      case 'linkedin':
-        shareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=${title}`;
-        break;
-      case 'whatsapp':
-        shareUrl = `https://api.whatsapp.com/send?text=${title}%20${url}`;
-        break;
-      default:
-        return;
-    }
-
-    window.open(shareUrl, '_blank', 'noopener,noreferrer');
-  };
 
   if (isLoading) {
     return (
@@ -108,31 +84,21 @@ const ArticlePage: React.FC = () => {
             <Advertisement type="banner" adSlot="4133475647" />
             <div className="mt-8 pt-8 border-t border-gray-200">
               <h3 className="text-xl font-bold mb-4">Share this article</h3>
-              <div className="flex space-x-3 overflow-x-auto pb-2">
-                <button 
-                  onClick={() => shareArticle('facebook')} 
-                  className="px-4 py-2 bg-[#1877f2] text-white rounded hover:bg-[#1566d8] transition-colors whitespace-nowrap"
-                >
-                  Facebook
-                </button>
-                <button 
-                  onClick={() => shareArticle('twitter')} 
-                  className="px-4 py-2 bg-[#1da1f2] text-white rounded hover:bg-[#1a91da] transition-colors whitespace-nowrap"
-                >
-                  Twitter
-                </button>
-                <button 
-                  onClick={() => shareArticle('linkedin')} 
-                  className="px-4 py-2 bg-[#0a66c2] text-white rounded hover:bg-[#0858a8] transition-colors whitespace-nowrap"
-                >
-                  LinkedIn
-                </button>
-                <button 
-                  onClick={() => shareArticle('whatsapp')} 
-                  className="px-4 py-2 bg-[#25D366] text-white rounded hover:bg-[#22c05a] transition-colors whitespace-nowrap"
-                >
-                  WhatsApp
-                </button>
+              <div className="overflow-x-auto scrollbar-hide">
+                <div className="flex space-x-3 w-max">
+                  <ShareButtons 
+                    title={article.title} 
+                    url={window.location.href} 
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="mt-8 pt-8 border-t border-gray-200">
+              <h3 className="text-xl font-bold mb-4">Comments</h3>
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <p className="text-center text-gray-600">
+                  Comments are disabled for this article.
+                </p>
               </div>
             </div>
           </div>
