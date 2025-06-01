@@ -26,22 +26,22 @@ const ShareButtons: React.FC<ShareButtonsProps> = ({ title, url }) => {
         variant="outline"
         size="sm"
         onClick={() => 
-          handleShare('WhatsApp', `https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`)
+          handleShare('Twitter', `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`)
         }
       >
         <Share className="mr-1 h-4 w-4" />
-        WhatsApp
+        Twitter
       </Button>
       
       <Button
         variant="outline"
         size="sm"
         onClick={() => 
-          handleShare('Twitter', `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`)
+          handleShare('Facebook', `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`)
         }
       >
         <Share className="mr-1 h-4 w-4" />
-        Twitter
+        Facebook
       </Button>
       
       <Button
@@ -58,6 +58,7 @@ const ShareButtons: React.FC<ShareButtonsProps> = ({ title, url }) => {
       <Button
         variant="outline"
         size="sm"
+        className="bg-[#E1306C] text-white border-[#E1306C] hover:bg-[#c92b5f] hover:border-[#c92b5f] transition-colors"
         onClick={() => 
           handleShare('Instagram', `https://www.instagram.com/?url=${encodedUrl}`)
         }
@@ -69,12 +70,16 @@ const ShareButtons: React.FC<ShareButtonsProps> = ({ title, url }) => {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => 
-          handleShare('Facebook', `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`)
-        }
+        onClick={() => {
+          navigator.clipboard.writeText(window.location.href);
+          toast({
+            title: "Copied!",
+            description: "Link copied to clipboard",
+          });
+        }}
       >
         <Share className="mr-1 h-4 w-4" />
-        Facebook
+        Copy Link
       </Button>
     </div>
   );
