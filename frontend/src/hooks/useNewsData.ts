@@ -142,21 +142,6 @@ const fetchTrendingArticles = async (limit: number = 5): Promise<Article[]> => {
   return fetchArticles({}, limit, true);
 };
 
-export function useAllCategoryArticles(categories: Category[] | undefined, limit: number = 5) {
-  const queries = categories?.map(category => ({
-    name: category.name,
-    path: category.path,
-    query: useQuery<Article[], Error>({
-      queryKey: ["categoryArticles", category.name],
-      queryFn: () => fetchCategoryArticles(category.name, limit),
-      enabled: !!category.name,
-      retry: 1,
-    })
-  })) || [];
-
-  return queries;
-}
-
 export function useBreakingNews() {
   return useQuery<BreakingNewsItem[], Error>({
     queryKey: ["breakingNews"],

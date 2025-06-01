@@ -9,7 +9,7 @@ import {
   useBreakingNews, 
   useFeaturedArticles, 
   useCategories,
-  useAllCategoryArticles 
+  useCategoryArticles 
 } from '@/hooks/useNewsData';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
@@ -18,16 +18,10 @@ const Index: React.FC = () => {
   const { data: featuredArticlesData, isLoading: isLoadingFeatured, error: featuredError } = useFeaturedArticles();
   const { data: categories, isLoading: categoriesLoading, error: categoriesError } = useCategories();
 
-  // Ensure categories is defined before passing to useAllCategoryArticles
-  const categoryQueries = useAllCategoryArticles(categories || [], 5);
-
   useEffect(() => {
     console.log('Index: breakingNewsData:', breakingNewsData);
     console.log('Index: featuredArticlesData:', featuredArticlesData);
     console.log('Index: categories:', categories);
-    categoryQueries.forEach(({ name, query }) => {
-      console.log(`Index: ${name}NewsData:`, query.data, `${name}Error:`, query.error, `${name}IsError:`, query.isError);
-    });
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -46,7 +40,7 @@ const Index: React.FC = () => {
     });
 
     return () => observer.disconnect();
-  }, [breakingNewsData, featuredArticlesData, categories]); // Simplified dependencies
+  }, [breakingNewsData, featuredArticlesData, categories]);
 
   return (
     <MainLayout>
@@ -99,31 +93,36 @@ const Index: React.FC = () => {
                 <h2 className="text-2xl font-semibold mb-4">Categories</h2>
                 <p className="text-red-600 text-lg">Error loading categories: {categoriesError.message}</p>
               </section>
-            ) : categoryQueries.length > 0 ? (
-              categoryQueries.map(({ name, path, query }, index) => (
-                <div key={name} className="lazy-animate">
-                  {query.isLoading ? (
-                    <LoadingSpinner />
-                  ) : query.isError ? (
-                    <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
-                      <h2 className="text-2xl font-semibold mb-4">{name} News</h2>
-                      <p className="text-red-600 text-lg">Error loading {name.toLowerCase()} news: {query.error?.message || 'Unknown error'}</p>
-                    </section>
-                  ) : (
-                    <>
-                      <CategoryNews 
-                        category={{ name, path }}
-                        articles={query.data || []}
-                      />
-                      {index % 2 === 1 && index !== categoryQueries.length - 1 && (
-                        <div className="py-8 lazy-animate">
-                          <Advertisement type="banner" adSlot="5036327926" />
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              ))
+            ) : categories && categories.length > 0 ? (
+              categories.map((category, index) => {
+                const { data: articles, isLoading, isError, error } = useCategoryArticles(category.name, 5);
+                console.log(`Index: ${category.name}NewsData:`, articles, `${category.name}Error:`, error, `${category.name}IsError:`, isError);
+                
+                return (
+                  <div key={category.name} className="lazy-animate">
+                    {isLoading ? (
+                      <LoadingSpinner />
+                    ) : isError ? (
+                      <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
+                        <h2 className="text-2xl font-semibold mb-4">{category.name} News</h2>
+                        <p className="text-red-600 text-lg">Error loading {category.name.toLowerCase()} news: {error?.message || 'Unknown error'}</p>
+                      </section>
+                    ) : (
+                      <>
+                        <CategoryNews 
+                          category={{ name: category.name, path: category.path }}
+                          articles={articles || []}
+                        />
+                        {index % 2 === 1 && index !== categories.length - 1 && (
+                          <div className="py-8 lazy-animate">
+                            <Advertisement type="banner" adSlot="5036327926" />
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })
             ) : (
               <section className="mb-12 p-4 border border-gray-200 rounded-lg bg-white">
                 <h2 className="text-2xl font-semibold mb-4">Categories</h2>
