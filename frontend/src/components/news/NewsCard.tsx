@@ -57,7 +57,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
         </div>
-        <CardContent className={`p-4 ${horizontal ? 'sm:w-2/3 w-full' : ''}`}>
+        <CardContent className={`p-4 sm:p-4 ${horizontal ? 'sm:w-2/3 w-full' : ''}`}>
           <h3 className={`font-bold mb-2 ${featured ? 'text-xl sm:text-2xl' : compact ? 'text-base' : 'text-lg'} hover:text-news-accent transition-colors`}>
             {title}
           </h3>
