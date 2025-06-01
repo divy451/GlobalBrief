@@ -9,7 +9,7 @@ import {
   useBreakingNews, 
   useFeaturedArticles, 
   useCategories,
-  useCategoryArticles 
+  useAllCategoryArticles 
 } from '@/hooks/useNewsData';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
@@ -17,11 +17,15 @@ const Index: React.FC = () => {
   const { data: breakingNewsData, isLoading: isLoadingBreaking, error: breakingError } = useBreakingNews();
   const { data: featuredArticlesData, isLoading: isLoadingFeatured, error: featuredError } = useFeaturedArticles();
   const { data: categories, isLoading: categoriesLoading, error: categoriesError } = useCategories();
+  
+  // Fetch all category articles in a single query
+  const { data: categoryArticlesData, isLoading: categoryArticlesLoading, error: categoryArticlesError } = useAllCategoryArticles(categories || [], 5);
 
   useEffect(() => {
     console.log('Index: breakingNewsData:', breakingNewsData);
     console.log('Index: featuredArticlesData:', featuredArticlesData);
     console.log('Index: categories:', categories);
+    console.log('Index: categoryArticlesData:', categoryArticlesData);
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -40,7 +44,7 @@ const Index: React.FC = () => {
     });
 
     return () => observer.disconnect();
-  }, [breakingNewsData, featuredArticlesData, categories]);
+  }, [breakingNewsData, featuredArticlesData, categories, categoryArticlesData]);
 
   return (
     <MainLayout>
@@ -93,36 +97,27 @@ const Index: React.FC = () => {
                 <h2 className="text-2xl font-semibold mb-4">Categories</h2>
                 <p className="text-red-600 text-lg">Error loading categories: {categoriesError.message}</p>
               </section>
+            ) : categoryArticlesLoading ? (
+              <LoadingSpinner />
+            ) : categoryArticlesError ? (
+              <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
+                <h2 className="text-2xl font-semibold mb-4">Categories</h2>
+                <p className="text-red-600 text-lg">Error loading category articles: {categoryArticlesError.message}</p>
+              </section>
             ) : categories && categories.length > 0 ? (
-              categories.map((category, index) => {
-                const { data: articles, isLoading, isError, error } = useCategoryArticles(category.name, 5);
-                console.log(`Index: ${category.name}NewsData:`, articles, `${category.name}Error:`, error, `${category.name}IsError:`, isError);
-                
-                return (
-                  <div key={category.name} className="lazy-animate">
-                    {isLoading ? (
-                      <LoadingSpinner />
-                    ) : isError ? (
-                      <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
-                        <h2 className="text-2xl font-semibold mb-4">{category.name} News</h2>
-                        <p className="text-red-600 text-lg">Error loading {category.name.toLowerCase()} news: {error?.message || 'Unknown error'}</p>
-                      </section>
-                    ) : (
-                      <>
-                        <CategoryNews 
-                          category={{ name: category.name, path: category.path }}
-                          articles={articles || []}
-                        />
-                        {index % 2 === 1 && index !== categories.length - 1 && (
-                          <div className="py-8 lazy-animate">
-                            <Advertisement type="banner" adSlot="5036327926" />
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              })
+              categories.map((category, index) => (
+                <div key={category.name} className="lazy-animate">
+                  <CategoryNews 
+                    category={{ name: category.name, path: category.path }}
+                    articles={categoryArticlesData?.[category.name] || []}
+                  />
+                  {index % 2 === 1 && index !== categories.length - 1 && (
+                    <div className="py-8 lazy-animate">
+                      <Advertisement type="banner" adSlot="5036327926" />
+                    </div>
+                  )}
+                </div>
+              ))
             ) : (
               <section className="mb-12 p-4 border border-gray-200 rounded-lg bg-white">
                 <h2 className="text-2xl font-semibold mb-4">Categories</h2>

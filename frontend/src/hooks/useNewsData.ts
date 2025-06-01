@@ -138,6 +138,17 @@ const fetchCategoryArticles = async (category: string, limit: number = 4): Promi
   return fetchArticles({ category }, limit, true);
 };
 
+const fetchAllCategoryArticles = async (categories: Category[], limit: number = 4): Promise<{ [key: string]: Article[] }> => {
+  const result: { [key: string]: Article[] } = {};
+  await Promise.all(
+    categories.map(async (category) => {
+      const articles = await fetchArticles({ category: category.name }, limit, true);
+      result[category.name] = articles;
+    })
+  );
+  return result;
+};
+
 const fetchTrendingArticles = async (limit: number = 5): Promise<Article[]> => {
   return fetchArticles({}, limit, true);
 };
@@ -171,6 +182,15 @@ export function useCategoryArticles(category: string, limit?: number) {
     queryKey: ["categoryArticles", category],
     queryFn: () => fetchCategoryArticles(category, limit),
     enabled: !!category,
+    retry: 1,
+  });
+}
+
+export function useAllCategoryArticles(categories: Category[], limit: number = 5) {
+  return useQuery<{ [key: string]: Article[] }, Error>({
+    queryKey: ["allCategoryArticles", categories.map(cat => cat.name).join(","), limit],
+    queryFn: () => fetchAllCategoryArticles(categories, limit),
+    enabled: !!categories && categories.length > 0,
     retry: 1,
   });
 }
