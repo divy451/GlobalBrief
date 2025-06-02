@@ -8,6 +8,10 @@ interface FeaturedNewsProps {
 }
 
 const FeaturedNews: React.FC<FeaturedNewsProps> = ({ mainArticle, secondaryArticles }) => {
+  // Ensure only published articles are displayed
+  const publishedMainArticle = mainArticle.published ? mainArticle : null;
+  const publishedSecondaryArticles = secondaryArticles.filter(article => article.published);
+
   return (
     <section className="py-8">
       <div className="container">
@@ -20,20 +24,22 @@ const FeaturedNews: React.FC<FeaturedNewsProps> = ({ mainArticle, secondaryArtic
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 animate-slide-in-left">
-            <NewsCard 
-              id={mainArticle.id}
-              title={mainArticle.title}
-              excerpt={mainArticle.excerpt}
-              image={mainArticle.image || 'https://via.placeholder.com/600x400?text=Featured+Image'}
-              category={mainArticle.category}
-              date={mainArticle.date}
-              path={mainArticle.path}
-              featured={true}
-            />
+            {publishedMainArticle && (
+              <NewsCard 
+                id={publishedMainArticle.id}
+                title={publishedMainArticle.title}
+                excerpt={publishedMainArticle.excerpt}
+                image={publishedMainArticle.image || 'https://via.placeholder.com/600x400?text=Featured+Image'}
+                category={publishedMainArticle.category}
+                date={publishedMainArticle.date}
+                path={publishedMainArticle.path}
+                featured={true}
+              />
+            )}
           </div>
           
           <div className="space-y-6">
-            {secondaryArticles.map((article, index) => (
+            {publishedSecondaryArticles.map((article, index) => (
               <div 
                 key={article.id} 
                 className="animate-slide-in-right" 

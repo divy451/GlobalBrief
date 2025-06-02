@@ -39,6 +39,7 @@ const NewArticle: React.FC = () => {
         author: 'Anonymous',
         date: new Date().toISOString(),
         isBreaking: false,
+        published: false, // Set draft as unpublished
       };
       console.log('NewArticle: Submitting draftData:', draftData);
 
