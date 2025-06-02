@@ -33,7 +33,6 @@ const EditArticle: React.FC = () => {
     image: '',
     author: '',
     isBreaking: false,
-    published: false, // Add published field to formData
   });
 
   useEffect(() => {
@@ -66,7 +65,6 @@ const EditArticle: React.FC = () => {
           image: article.image || '',
           author: article.author || '',
           isBreaking: article.isBreaking || false,
-          published: article.published || false, // Initialize published field
         });
       } catch (error) {
         console.error('EditArticle: Fetch error:', error);
@@ -114,7 +112,6 @@ const EditArticle: React.FC = () => {
         author: formData.author,
         date: new Date().toISOString(),
         isBreaking: formData.isBreaking,
-        published: true, // Set to true when updating (publishing)
       };
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news/${id}`, {

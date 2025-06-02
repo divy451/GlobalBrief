@@ -9,7 +9,6 @@ export interface Article {
   image: string;
   isBreaking: boolean;
   path: string;
-  published: boolean;
 }
 
 export interface Category {
