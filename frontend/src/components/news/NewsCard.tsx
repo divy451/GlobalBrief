@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
+import { Link, useNavigate } from 'react-router-dom'; // Keep useNavigate
 import { Card, CardContent } from "@/components/ui/card";
 
 interface NewsCardProps {
@@ -15,21 +15,21 @@ interface NewsCardProps {
   compact?: boolean;
 }
 
-const NewsCard: React.FC<NewsCardProps> = ({ 
-  title, 
-  excerpt, 
-  image, 
-  category, 
-  date, 
-  path, 
+const NewsCard: React.FC<NewsCardProps> = ({
+  title,
+  excerpt,
+  image,
+  category,
+  date,
+  path,
   featured = false,
   horizontal = false,
   compact = false
 }) => {
-  const fallbackImage = '/assets/fallback-image.jpg';
-  const navigate = useNavigate(); // Initialize useNavigate
+  const fallbackImage = '/assets/fallback-image.jpg'; // Keep fallback image functionality
+  const navigate = useNavigate(); // Keep useNavigate functionality
 
-  // Format date for consistency
+  // Format date for consistency (keep this new functionality)
   const formattedDate = new Date(date).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -37,21 +37,22 @@ const NewsCard: React.FC<NewsCardProps> = ({
   });
 
   const handleCardClick = () => {
-    navigate(path); // Navigate when the card is clicked
+    navigate(path); // Keep card click navigation functionality
   };
 
   return (
-    // Make the entire card clickable
-    <Card 
+    // Make the entire card clickable (keep this new functionality)
+    <Card
       className={`news-card h-full cursor-pointer ${horizontal ? 'flex flex-col md:flex-row' : ''} ${featured ? 'border-l-4 border-news-accent' : ''}`}
       onClick={handleCardClick}
     >
       <div className={`relative overflow-hidden ${horizontal ? 'md:w-1/3' : 'w-full'}`}>
-        <img 
-          src={image} 
+        <img
+          src={image}
           alt={title}
+          // Reverted this line to exactly match the old code's styling for md:h-auto
           className={`w-full h-48 md:h-auto object-cover ${horizontal ? 'md:h-full' : ''}`}
-          onError={(e) => {
+          onError={(e) => { // Keep error handling for fallback image
             if (e.currentTarget.src !== fallbackImage) {
               e.currentTarget.src = fallbackImage;
               e.currentTarget.onerror = null;
@@ -67,7 +68,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
       </div>
       <CardContent className={`p-4 ${horizontal ? 'md:w-2/3' : ''}`}>
         {/* Only the title is a Link for original styling, but the whole card clicks */}
-        <Link to={path} onClick={(e) => e.stopPropagation()}> 
+        <Link to={path} onClick={(e) => e.stopPropagation()}>
           <h3 className={`font-bold mb-2 ${featured ? 'text-xl md:text-2xl' : compact ? 'text-base' : 'text-lg'} hover:text-news-accent transition-colors`}>
             {title}
           </h3>

@@ -1,6 +1,6 @@
 import React from 'react';
 import NewsCard from './NewsCard';
-import { Article } from '@/types/news';
+import { Article } from '@/types/news'; // Keep Article interface import
 
 interface FeaturedNewsProps {
   mainArticle: Article;
@@ -13,37 +13,37 @@ const FeaturedNews: React.FC<FeaturedNewsProps> = ({ mainArticle, secondaryArtic
       <div className="container">
         <h2 className="text-2xl font-bold mb-6 pb-2 border-b border-gray-200 flex items-center">
           <span className="relative">
-            Featured Articles
+            Featured News {/* Reverted heading text to "Featured News" */}
             <span className="absolute -bottom-2 left-0 w-1/3 h-1 bg-news-accent"></span>
           </span>
         </h2>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 animate-slide-in-left">
-            <NewsCard 
+            <NewsCard
               id={mainArticle.id}
               title={mainArticle.title}
               excerpt={mainArticle.excerpt}
-              image={mainArticle.image || 'https://via.placeholder.com/600x400?text=Featured+Image'}
+              image={mainArticle.image} // Removed explicit placeholder image
               category={mainArticle.category}
               date={mainArticle.date}
               path={mainArticle.path}
               featured={true}
             />
           </div>
-          
+
           <div className="space-y-6">
             {secondaryArticles.map((article, index) => (
-              <div 
-                key={article.id} 
-                className="animate-slide-in-right" 
+              <div
+                key={article.id}
+                className="animate-slide-in-right"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <NewsCard 
+                <NewsCard
                   id={article.id}
                   title={article.title}
                   excerpt={article.excerpt}
-                  image={article.image || 'https://via.placeholder.com/150x100?text=Secondary+Image'}
+                  image={article.image} // Removed explicit placeholder image
                   category={article.category}
                   date={article.date}
                   path={article.path}
