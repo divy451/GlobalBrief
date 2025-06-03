@@ -18,7 +18,6 @@ import NotFound from "./pages/NotFound";
 import AdminRouteGuard from "./components/auth/AdminRouteGuard";
 import AboutPage from "./pages/AboutPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
-import SearchPage from "./pages/SearchPage"; // Add import for SearchPage
 
 const queryClient = new QueryClient();
 
@@ -69,7 +68,6 @@ const App = () => (
               <Route path="/article/:id" element={<ArticlePage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/search" element={<SearchPage />} /> {/* Add SearchPage route */}
               <Route path="/admin/login" element={<AdminLogin />} />
               
               <Route element={<AdminRouteGuard />}>
