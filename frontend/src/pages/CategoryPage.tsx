@@ -17,9 +17,6 @@ const CategoryPage: React.FC = () => {
 
   const { data: articles, isLoading, error } = useCategoryArticles(categoryName, 12);
 
-  // Sort articles by date in descending order (latest first)
-  const sortedArticles = articles ? [...articles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) : [];
-
   return (
     <MainLayout>
       <div className="container py-8">
@@ -49,12 +46,12 @@ const CategoryPage: React.FC = () => {
                   <LoadingSpinner />
                 ) : error ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-600">Failed to load articles: {error.message}</p> {/* Restored old styling */}
+                    <p className="text-red-600">Failed to load articles: {error.message}</p>
                   </div>
-                ) : sortedArticles && sortedArticles.length > 0 ? (
+                ) : articles && articles.length > 0 ? (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                      {sortedArticles.slice(0, 8).map((article) => (
+                      {articles.slice(0, 8).map((article) => (
                         <NewsCard
                           key={article.id}
                           {...article}
@@ -62,11 +59,11 @@ const CategoryPage: React.FC = () => {
                       ))}
                     </div>
                     
-                    <Advertisement type="banner" /> {/* Restored old props */}
+                    <Advertisement type="banner" adSlot="3686800815" adClient="ca-pub-9084229712463529" />
                     
-                    {sortedArticles.length > 8 && (
+                    {articles.length > 8 && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                        {sortedArticles.slice(8).map((article) => (
+                        {articles.slice(8).map((article) => (
                           <NewsCard
                             key={article.id}
                             {...article}
