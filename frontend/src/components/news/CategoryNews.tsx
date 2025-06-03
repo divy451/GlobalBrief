@@ -14,13 +14,15 @@ interface CategoryNewsProps {
     image: string;
     category: string;
     date: string;
-    isBreaking: boolean; // Keep this new prop
+    isBreaking: boolean;
   }[];
 }
 
 const CategoryNews: React.FC<CategoryNewsProps> = ({ category, articles }) => {
-  // Console log is part of your new code, keeping it
   console.log(`CategoryNews (${category.name}): articles:`, articles);
+
+  // Sort articles by date in descending order (latest first)
+  const sortedArticles = [...articles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <section className="py-8 border-t border-gray-200">
@@ -38,14 +40,13 @@ const CategoryNews: React.FC<CategoryNewsProps> = ({ category, articles }) => {
           </Link>
         </div>
 
-        {/* This conditional rendering is from your new code, keeping it */}
-        {(!articles || articles.length === 0) ? (
+        {(!sortedArticles || sortedArticles.length === 0) ? (
           <div className="text-gray-600 text-lg">
             No articles available for {category.name}.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {articles.map((article, index) => (
+            {sortedArticles.map((article, index) => (
               <div
                 key={article.id}
                 className="animate-slide-in-bottom hover-lift"
@@ -58,7 +59,7 @@ const CategoryNews: React.FC<CategoryNewsProps> = ({ category, articles }) => {
                   image={article.image}
                   category={article.category}
                   date={article.date}
-                  path={`/article/${article.id}`} // Keep dynamic path
+                  path={`/article/${article.id}`}
                 />
               </div>
             ))}
