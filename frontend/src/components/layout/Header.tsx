@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Menu, X, Sun, Moon } from 'lucide-react';
@@ -8,6 +7,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -25,6 +25,19 @@ const Header = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      console.log('Searching for:', searchQuery);
+      // Navigate to search results page with query
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const handleSearchInput = (e) => {
+    setSearchQuery(e.target.value);
+  };
 
   const categories = [
     { name: "World", path: "/category/world" },
@@ -66,16 +79,23 @@ const Header = () => {
           </Link>
 
           <div className="hidden md:flex items-center space-x-4 animate-slide-in-right">
-            <div className={`relative transition-all duration-300 ${searchFocused ? 'w-64' : 'w-48'}`}>
+            <form onSubmit={handleSearch} className={`relative transition-all duration-300 ${searchFocused ? 'w-64' : 'w-48'}`}>
               <input
                 type="text"
                 placeholder="Search..."
+                value={searchQuery}
+                onChange={handleSearchInput}
                 className="pl-10 pr-4 py-1.5 w-full border border-gray-300 dark:border-gray-700 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-600 transition-all duration-300 bg-white dark:bg-gray-800 dark:text-white"
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
               />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-            </div>
+              <button
+                type="submit"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-600 transition-colors"
+              >
+                <Search size={16} />
+              </button>
+            </form>
           </div>
 
           <button
@@ -89,8 +109,9 @@ const Header = () => {
       </div>
 
       <nav className="border-t border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-        <div className="container overflow-auto scrollbar-hide">
-          <ul className="hidden md:flex space-x-6 py-3 whitespace-nowrap animate-slide-in-bottom">
+        <div className="container">
+          {/* Desktop navigation */}
+          <ul className="hidden md:flex space-x-6 py-3 whitespace-nowrap animate-slide-in-bottom overflow-auto scrollbar-hide">
             {categories.map((category) => (
               <li key={category.name}>
                 <Link 
@@ -102,35 +123,44 @@ const Header = () => {
               </li>
             ))}
           </ul>
-        </div>
-      </nav>
 
-      {/* Mobile menu */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 animate-fade-in">
-          <div className="container py-4">
-            <div className="relative mb-4">
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-600 bg-white dark:bg-gray-800 dark:text-white"
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-            </div>
-            
-            <ul className="space-y-3 mb-4">
-              {categories.map((category, index) => (
-                <li key={category.name} className={`animate-fade-in`} style={{animationDelay: `${index * 50}ms`}}>
+          {/* Mobile navigation - always visible */}
+          <div className="md:hidden py-3 animate-slide-in-bottom">
+            <ul className="flex space-x-6 whitespace-nowrap overflow-x-auto scrollbar-hide">
+              {categories.map((category) => (
+                <li key={category.name} className="flex-shrink-0">
                   <Link 
                     to={category.path}
-                    className="text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 font-medium transition-colors block py-2"
-                    onClick={toggleMenu}
+                    className="category-tab text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 font-medium transition-colors block"
                   >
                     {category.name}
                   </Link>
                 </li>
               ))}
             </ul>
+          </div>
+        </div>
+      </nav>
+
+      {/* Mobile menu overlay */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 animate-fade-in">
+          <div className="container py-4">
+            <form onSubmit={handleSearch} className="relative mb-4">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={handleSearchInput}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-600 bg-white dark:bg-gray-800 dark:text-white"
+              />
+              <button
+                type="submit"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-600 transition-colors"
+              >
+                <Search size={16} />
+              </button>
+            </form>
           </div>
         </div>
       )}
