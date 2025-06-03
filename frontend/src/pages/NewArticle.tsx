@@ -30,7 +30,7 @@ const NewArticle: React.FC = () => {
     image: 'https://picsum.photos/400/300',
     author: 'Anonymous',
     isBreaking: false,
-    imageCredit: 'GlobalBrief', // Add imageCredit field
+    imageCredit: 'GlobalBrief',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -58,7 +58,7 @@ const NewArticle: React.FC = () => {
         author: formData.author,
         date: new Date().toISOString(),
         isBreaking: formData.isBreaking,
-        imageCredit: formData.imageCredit, // Include imageCredit in API payload
+        imageCredit: formData.imageCredit,
       };
       console.log('NewArticle: Submitting articleData:', articleData);
 
@@ -76,6 +76,7 @@ const NewArticle: React.FC = () => {
         status: response.status,
         body: responseData,
         image: responseData.image,
+        imageCredit: responseData.imageCredit, // Add this to check if imageCredit is in the response
       });
 
       if (!response.ok) {
@@ -88,6 +89,16 @@ const NewArticle: React.FC = () => {
         _id: newArticleId,
         path: `/news/${newArticleId}`,
       };
+
+      // Debug: Fetch the article directly after creation to confirm storage
+      const fetchAfterCreate = await fetch(`${import.meta.env.VITE_API_URL}/api/news/${newArticleId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const fetchedArticle = await fetchAfterCreate.json();
+      console.log('NewArticle: Fetched article after creation:', fetchedArticle);
 
       queryClient.setQueryData(['articles'], (old: any) => {
         const newData = old ? [...old, newArticle] : [newArticle];
