@@ -23,14 +23,12 @@ export default {
       const url = new URL(request.url);
       const method = request.method;
 
-      // Check if NEWS_KV binding is available
       const kv = env.NEWS_KV;
       if (!kv) {
         console.error('Error: NEWS_KV binding is undefined. Check wrangler.toml and deployment environment.');
         throw new Error('NEWS_KV binding is not available');
       }
 
-      // Log the incoming request URL and method
       console.log(`Request received: ${method} ${url.pathname}${url.search}`);
 
       const authenticateToken = async (headers) => {
@@ -143,40 +141,35 @@ export default {
 
       if (normalizedPathname === '/api/news' && method === 'POST') {
         await authenticateToken(request.headers);
-        const { title, content, category, author, excerpt, isBreaking, image } = await request.json();
-        if (!title || !content || !category) {
+        const articleData = await request.json();
+        if (!articleData.title || !articleData.content || !articleData.category) {
           return new Response(JSON.stringify({ error: 'Title, content, and category are required' }), {
             status: 400,
             headers: corsHeaders,
           });
         }
         const id = crypto.randomUUID();
-        const articleData = {
+        const fullArticleData = {
+          ...articleData,
           _id: id,
-          title,
-          content,
-          category,
-          author: author || undefined,
-          excerpt: excerpt || undefined,
-          isBreaking: isBreaking === 'true' || isBreaking === true || false,
           date: new Date().toISOString(),
-          image: image || undefined,
+          isBreaking: articleData.isBreaking === 'true' || articleData.isBreaking === true || false,
         };
 
-        await kv.put(`news_db:articles:${id}`, JSON.stringify(articleData));
+        await kv.put(`news_db:articles:${id}`, JSON.stringify(fullArticleData));
 
-        const categoryKey = `news_db:categories:${category}`;
+        const categoryKey = `news_db:categories:${articleData.category}`;
         const categoryList = (await kv.get(categoryKey, { type: 'json' })) || [];
         categoryList.push(id);
         await kv.put(categoryKey, JSON.stringify(categoryList));
 
-        if (articleData.isBreaking) {
+        if (fullArticleData.isBreaking) {
           const breakingList = (await kv.get('news_db:breaking', { type: 'json' })) || [];
           breakingList.push(id);
           await kv.put('news_db:breaking', JSON.stringify(breakingList));
         }
 
-        return new Response(JSON.stringify(articleData), {
+        return new Response(JSON.stringify(fullArticleData), {
           status: 201,
           headers: corsHeaders,
         });
@@ -192,32 +185,27 @@ export default {
             headers: corsHeaders,
           });
         }
-        const { title, content, category, author, excerpt, isBreaking, image } = await request.json();
+        const updatedData = await request.json();
         const oldCategory = existingArticle.category;
         const oldIsBreaking = existingArticle.isBreaking;
 
         const updatedArticle = {
           ...existingArticle,
-          title: title || existingArticle.title,
-          content: content || existingArticle.content,
-          category: category || existingArticle.category,
-          author: author || existingArticle.author,
-          excerpt: excerpt || existingArticle.excerpt,
-          isBreaking: isBreaking !== undefined ? (isBreaking === 'true' || isBreaking === true) : existingArticle.isBreaking,
-          image: image || existingArticle.image,
+          ...updatedData,
+          isBreaking: updatedData.isBreaking !== undefined ? (updatedData.isBreaking === 'true' || updatedData.isBreaking === true) : existingArticle.isBreaking,
         };
 
         await kv.put(`news_db:articles:${id}`, JSON.stringify(updatedArticle));
 
-        if (category && category !== oldCategory) {
+        if (updatedData.category && updatedData.category !== oldCategory) {
           const oldCategoryList = (await kv.get(`news_db:categories:${oldCategory}`, { type: 'json' })) || [];
           await kv.put(`news_db:categories:${oldCategory}`, JSON.stringify(oldCategoryList.filter(articleId => articleId !== id)));
-          const newCategoryList = (await kv.get(`news_db:categories:${category}`, { type: 'json' })) || [];
+          const newCategoryList = (await kv.get(`news_db:categories:${updatedData.category}`, { type: 'json' })) || [];
           newCategoryList.push(id);
-          await kv.put(`news_db:categories:${category}`, JSON.stringify(newCategoryList));
+          await kv.put(`news_db:categories:${updatedData.category}`, JSON.stringify(newCategoryList));
         }
 
-        if (isBreaking !== undefined && (isBreaking === 'true' || isBreaking === true) !== oldIsBreaking) {
+        if (updatedData.isBreaking !== undefined && (updatedData.isBreaking === 'true' || updatedData.isBreaking === true) !== oldIsBreaking) {
           let breakingList = (await kv.get('news_db:breaking', { type: 'json' })) || [];
           if (updatedArticle.isBreaking) {
             if (!breakingList.includes(id)) breakingList.push(id);
@@ -304,6 +292,7 @@ export default {
                   <th>Author</th>
                   <th>Excerpt</th>
                   <th>Is Breaking</th>
+                  <th>Image Credit</th>
                 </tr>
         `;
         for (const article of articles) {
@@ -316,6 +305,7 @@ export default {
               <td>${article.author || 'Unknown'}</td>
               <td>${article.excerpt || ''}</td>
               <td>${article.isBreaking}</td>
+              <td>${article.imageCredit || 'N/A'}</td>
             </tr>
           `;
         }

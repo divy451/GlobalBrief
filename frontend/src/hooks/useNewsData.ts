@@ -11,7 +11,11 @@ interface ApiArticle {
   image?: string;
   excerpt?: string;
   isBreaking?: boolean;
+  imageCredit?: string; // Add this to match the API response
 }
+
+// Update Article interface in src/types/news.ts, assuming it's defined there
+// For now, we'll modify the mapping and assume the interface is updated accordingly
 
 const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean }, limit?: number, isPublic: boolean = false): Promise<Article[]> => {
   const token = isPublic ? null : localStorage.getItem('admin_token');
@@ -54,6 +58,7 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
     excerpt: article.excerpt || '',
     isBreaking: article.isBreaking || false,
     path: `/article/${article._id}`,
+    imageCredit: article.imageCredit, // Add this mapping
   }));
 };
 
@@ -91,6 +96,7 @@ const fetchArticleById = async (id: string): Promise<Article> => {
     excerpt: article.excerpt || '',
     isBreaking: article.isBreaking || false,
     path: `/article/${article._id}`,
+    imageCredit: article.imageCredit, // Add this mapping
   };
 };
 
