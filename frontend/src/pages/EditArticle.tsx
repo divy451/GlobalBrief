@@ -33,6 +33,7 @@ const EditArticle: React.FC = () => {
     image: '',
     author: '',
     isBreaking: false,
+    imageCredit: '', // Add imageCredit field
   });
 
   useEffect(() => {
@@ -65,6 +66,7 @@ const EditArticle: React.FC = () => {
           image: article.image || '',
           author: article.author || '',
           isBreaking: article.isBreaking || false,
+          imageCredit: article.imageCredit || 'GlobalBrief', // Initialize imageCredit
         });
       } catch (error) {
         console.error('EditArticle: Fetch error:', error);
@@ -112,6 +114,7 @@ const EditArticle: React.FC = () => {
         author: formData.author,
         date: new Date().toISOString(),
         isBreaking: formData.isBreaking,
+        imageCredit: formData.imageCredit, // Include imageCredit in API payload
       };
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news/${id}`, {
@@ -258,6 +261,18 @@ const EditArticle: React.FC = () => {
               {formData.image && (
                 <p className="text-sm text-gray-500 mt-1">Preview URL: <a href={formData.image} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{formData.image}</a></p>
               )}
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="imageCredit" className="text-sm font-medium">Image Credit</label>
+              <Input 
+                id="imageCredit" 
+                name="imageCredit"
+                value={formData.imageCredit} 
+                onChange={handleChange}
+                required 
+                className="focus:ring-red-600 transition-all"
+              />
             </div>
             
             <div className="space-y-2">

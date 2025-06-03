@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import Advertisement from '@/components/common/Advertisement';
 import Sidebar from '@/components/news/Sidebar';
-import ShareButtons from '@/components/news/ShareButtons'; // Import the new ShareButtons component
+import ShareButtons from '@/components/news/ShareButtons';
 import { formatDate } from '@/utils/formatDate';
 import { useArticleById } from '@/hooks/useNewsData';
 
@@ -73,7 +73,7 @@ const ArticlePage: React.FC = () => {
                 }}
               />
               <figcaption className="text-sm text-gray-500 mt-2">
-                Photo: GlobalBrief
+                Photo: {article.imageCredit || 'GlobalBrief'} {/* Use admin-provided imageCredit */}
               </figcaption>
             </figure>
             <div className="prose max-w-none mb-8">
