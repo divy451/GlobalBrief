@@ -7,19 +7,18 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(''); // Add state for search input
+  const [searchQuery, setSearchQuery] = useState('');
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-  // Handle search form submission
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery(''); // Clear the input after submission
-      setIsMenuOpen(false); // Close mobile menu if open
+      setSearchQuery('');
+      setIsMenuOpen(false);
     }
   };
 
@@ -104,7 +103,7 @@ const Header = () => {
 
       <nav className="border-t border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <div className="container overflow-auto scrollbar-hide">
-          <ul className="flex space-x-6 py-3 whitespace-nowrap animate-slide-in-bottom">
+          <ul className="flex space-x-4 md:space-x-6 py-3 whitespace-nowrap animate-slide-in-bottom">
             {categories.map((category) => (
               <li key={category.name}>
                 <Link 
@@ -119,7 +118,6 @@ const Header = () => {
         </div>
       </nav>
 
-      {/* Mobile menu - Only show search bar */}
       {isMenuOpen && (
         <div className="md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 animate-fade-in">
           <div className="container py-4">
