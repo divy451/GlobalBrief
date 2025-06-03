@@ -33,6 +33,9 @@ const ArticlePage: React.FC = () => {
     );
   }
 
+  // Debug log to inspect the article object
+  console.log('ArticlePage: Fetched article:', article);
+
   return (
     <MainLayout>
       <article className="container py-8">
@@ -73,7 +76,7 @@ const ArticlePage: React.FC = () => {
                 }}
               />
               <figcaption className="text-sm text-gray-500 mt-2">
-                Photo: {article.imageCredit || 'GlobalBrief'} {/* Use admin-provided imageCredit */}
+                Photo: {article.imageCredit || 'GlobalBrief'}
               </figcaption>
             </figure>
             <div className="prose max-w-none mb-8">
