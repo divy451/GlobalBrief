@@ -7,11 +7,21 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(''); // Add state for search input
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+  // Handle search form submission
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery(''); // Clear the input after submission
+      setIsMenuOpen(false); // Close mobile menu if open
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,19 +35,6 @@ const Header = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      console.log('Searching for:', searchQuery);
-      // Navigate to search results page with query
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
-  const handleSearchInput = (e) => {
-    setSearchQuery(e.target.value);
-  };
 
   const categories = [
     { name: "World", path: "/category/world" },
@@ -83,16 +80,13 @@ const Header = () => {
               <input
                 type="text"
                 placeholder="Search..."
-                value={searchQuery}
-                onChange={handleSearchInput}
                 className="pl-10 pr-4 py-1.5 w-full border border-gray-300 dark:border-gray-700 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-600 transition-all duration-300 bg-white dark:bg-gray-800 dark:text-white"
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <button
-                type="submit"
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-600 transition-colors"
-              >
+              <button type="submit" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                 <Search size={16} />
               </button>
             </form>
@@ -109,9 +103,8 @@ const Header = () => {
       </div>
 
       <nav className="border-t border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-        <div className="container">
-          {/* Desktop navigation */}
-          <ul className="hidden md:flex space-x-6 py-3 whitespace-nowrap animate-slide-in-bottom overflow-auto scrollbar-hide">
+        <div className="container overflow-auto scrollbar-hide">
+          <ul className="flex space-x-6 py-3 whitespace-nowrap animate-slide-in-bottom">
             {categories.map((category) => (
               <li key={category.name}>
                 <Link 
@@ -123,26 +116,10 @@ const Header = () => {
               </li>
             ))}
           </ul>
-
-          {/* Mobile navigation - always visible */}
-          <div className="md:hidden py-3 animate-slide-in-bottom">
-            <ul className="flex space-x-6 whitespace-nowrap overflow-x-auto scrollbar-hide">
-              {categories.map((category) => (
-                <li key={category.name} className="flex-shrink-0">
-                  <Link 
-                    to={category.path}
-                    className="category-tab text-gray-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 font-medium transition-colors block"
-                  >
-                    {category.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
       </nav>
 
-      {/* Mobile menu overlay */}
+      {/* Mobile menu - Only show search bar */}
       {isMenuOpen && (
         <div className="md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 animate-fade-in">
           <div className="container py-4">
@@ -150,14 +127,11 @@ const Header = () => {
               <input
                 type="text"
                 placeholder="Search..."
-                value={searchQuery}
-                onChange={handleSearchInput}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-600 bg-white dark:bg-gray-800 dark:text-white"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <button
-                type="submit"
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-600 transition-colors"
-              >
+              <button type="submit" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                 <Search size={16} />
               </button>
             </form>
