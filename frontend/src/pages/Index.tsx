@@ -51,20 +51,20 @@ const Index: React.FC = () => {
       {isLoadingBreaking ? (
         <LoadingSpinner />
       ) : breakingError ? (
-        <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
+        <section className="mb-8 p-4 border border-red-200 rounded-lg bg-white">
           <h2 className="text-2xl font-semibold mb-4">Breaking News</h2>
           <p className="text-red-600 text-lg">Error loading breaking news: {breakingError.message}</p>
         </section>
       ) : breakingNewsData && breakingNewsData.length > 0 ? (
         <BreakingNews news={breakingNewsData} />
       ) : (
-        <section className="mb-12 p-4 border border-gray-200 rounded-lg bg-white">
+        <section className="mb-8 p-4 border border-gray-200 rounded-lg bg-white">
           <h2 className="text-2xl font-semibold mb-4">Breaking News</h2>
           <p className="text-gray-600 text-lg">No breaking news available.</p>
         </section>
       )}
       
-      <div className="container px-2 sm:px-4 py-8">
+      <div className="container px-1 sm:px-4 py-8">
         {isLoadingFeatured ? (
           <LoadingSpinner />
         ) : featuredError ? (
