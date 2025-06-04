@@ -128,7 +128,7 @@ const Header = () => {
 
   return (
     <header className={`sticky top-0 z-50 bg-white dark:bg-gray-900 transition-all duration-300 ${isScrolled ? 'shadow-md' : ''}`}>
-      <div className={`bg-black text-white py-1.5 px-1 sm:px-4 md:px-8 transition-all duration-300 ${isScrolled ? 'py-1' : ''}`}>
+      <div className={`bg-black text-white py-1.5 px-2 md:px-8 transition-all duration-300 ${isScrolled ? 'py-1' : ''}`}>
         <div className="container flex justify-between items-center">
           <div className="text-xs md:text-sm animate-slide-in-left">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -145,9 +145,9 @@ const Header = () => {
         </div>
       </div>
 
-      <div className="container py-4 transition-all duration-300">
+      <div className="container px-2 md:px-4 py-4 transition-all duration-300">
         <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center group animate-slide-in-left">
+          <Link to="/" className="flex items-center group animate-slide-in-left ml-1">
             <h1 className="text-2xl md:text-4xl font-bold text-news-primary dark:text-white relative z-10 group-hover:text-red-600 transition-colors duration-300">
               <span>Briefly</span>
               <span className="text-red-600 group-hover:text-news-primary dark:group-hover:text-white transition-colors duration-300">Global</span>
@@ -169,7 +169,7 @@ const Header = () => {
       </div>
 
       <nav className="border-t border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-        <div className="container px-1 sm:px-4 overflow-auto scrollbar-hide">
+        <div className="container overflow-auto scrollbar-hide">
           <ul className="flex space-x-3 md:space-x-6 py-3 whitespace-nowrap animate-slide-in-bottom">
             {categories.map((category) => (
               <li key={category.name}>
@@ -187,7 +187,7 @@ const Header = () => {
 
       {isMenuOpen && (
         <div className="md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 animate-fade-in">
-          <div className="container px-1 sm:px-4 py-4">
+          <div className="container px-2 md:px-4 py-4">
             {renderSearchForm(true)}
           </div>
         </div>
