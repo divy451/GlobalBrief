@@ -422,6 +422,22 @@ export default {
         });
       }
 
+      if (normalizedPathname === '/migrate-search-index' && method === 'POST') {
+        await authenticateToken(request.headers);
+        const articleKeys = await kv.list({ prefix: 'news_db:articles:' });
+        let count = 0;
+        for (const key of articleKeys.keys) {
+          const article = await kv.get(key.name, { type: 'json' });
+          if (article) {
+            await updateSearchIndex(kv, article._id, article.title, article.content);
+            count++;
+          }
+        }
+        return new Response(JSON.stringify({ message: `Indexed ${count} articles` }), {
+          headers: corsHeaders,
+        });
+      }
+
       if (url.pathname === '/' && method === 'GET') {
         return new Response(JSON.stringify({ message: "Welcome to the News API", status: "Operational" }), {
           headers: corsHeaders,
