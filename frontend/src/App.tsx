@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import AdminRouteGuard from "./components/auth/AdminRouteGuard";
 import AboutPage from "./pages/AboutPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import SearchPage from "./pages/SearchPage"; // Import SearchPage
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,7 @@ const App = () => (
               <Route path="/about" element={<AboutPage />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/search" element={<SearchPage />} /> {/* Add SearchPage route */}
               
               <Route element={<AdminRouteGuard />}>
                 <Route path="/admin" element={<AdminPortal />} />
