@@ -36,6 +36,7 @@ const Header = () => {
   }, []);
 
   const categories = [
+    { name: "Home", path: "/" }, // Add Home link
     { name: "World", path: "/category/world" },
     { name: "Politics", path: "/category/politics" },
     { name: "Business", path: "/category/business" },
@@ -103,7 +104,7 @@ const Header = () => {
 
       <nav className="border-t border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <div className="container overflow-auto scrollbar-hide">
-          <ul className="flex space-x-4 md:space-x-6 py-3 whitespace-nowrap animate-slide-in-bottom">
+          <ul className="flex space-x-3 md:space-x-6 py-3 whitespace-nowrap animate-slide-in-bottom">
             {categories.map((category) => (
               <li key={category.name}>
                 <Link 
@@ -125,7 +126,7 @@ const Header = () => {
               <input
                 type="text"
                 placeholder="Search..."
-                className="pl-10 pr-4 py-1.5 w-full border border-gray-300 dark:border-gray-700 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-600 bg-white dark:bg-gray-800 dark:text-white"
+                className="pl-12 pr-4 py-1.5 w-full border border-gray-300 dark:border-gray-700 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-600 bg-white dark:bg-gray-800 dark:text-white"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
