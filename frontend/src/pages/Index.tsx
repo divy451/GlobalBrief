@@ -64,7 +64,7 @@ const Index: React.FC = () => {
         </section>
       )}
       
-      <div className="container px-1 sm:px-4 py-8">
+      <div className="container px-3 sm:px-4 py-8">
         {isLoadingFeatured ? (
           <LoadingSpinner />
         ) : featuredError ? (
