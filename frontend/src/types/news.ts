@@ -9,7 +9,7 @@ export interface Article {
   image: string;
   isBreaking: boolean;
   path: string;
-  imageCredit: string;
+  imageCredit: string; // Add imageCredit field
 }
 
 export interface Category {

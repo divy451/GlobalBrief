@@ -10,62 +10,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-const extractKeywords = (text) => {
-  if (!text) return new Set();
-  return new Set(
-    text
-      .toLowerCase()
-      .replace(/[^\w\s]/g, '')
-      .split(/\s+/)
-      .filter(word => word.length > 2)
-      .slice(0, 50)
-  );
-};
-
-const updateSearchIndex = async (kv, articleId, title, content, oldKeywords = new Set()) => {
-  const newKeywords = new Set([...extractKeywords(title), ...extractKeywords(content)]);
-  
-  for (const keyword of oldKeywords) {
-    if (!newKeywords.has(keyword)) {
-      const indexKey = `news_db:search_index:${keyword}`;
-      let indexedIds = (await kv.get(indexKey, { type: 'json' })) || [];
-      indexedIds = indexedIds.filter(id => id !== articleId);
-      if (indexedIds.length > 0) {
-        await kv.put(indexKey, JSON.stringify(indexedIds));
-      } else {
-        await kv.delete(indexKey);
-      }
-    }
-  }
-
-  for (const keyword of newKeywords) {
-    if (!oldKeywords.has(keyword) || true) {
-      const indexKey = `news_db:search_index:${keyword}`;
-      let indexedIds = (await kv.get(indexKey, { type: 'json' })) || [];
-      if (!indexedIds.includes(articleId)) {
-        indexedIds.push(articleId);
-        await kv.put(indexKey, JSON.stringify(indexedIds));
-      }
-    }
-  }
-
-  return newKeywords;
-};
-
-const removeFromSearchIndex = async (kv, articleId, title, content) => {
-  const keywords = new Set([...extractKeywords(title), ...extractKeywords(content)]);
-  for (const keyword of keywords) {
-    const indexKey = `news_db:search_index:${keyword}`;
-    let indexedIds = (await kv.get(indexKey, { type: 'json' })) || [];
-    indexedIds = indexedIds.filter(id => id !== articleId);
-    if (indexedIds.length > 0) {
-      await kv.put(indexKey, JSON.stringify(indexedIds));
-    } else {
-      await kv.delete(indexKey);
-    }
-  }
-};
-
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') {
@@ -150,25 +94,6 @@ export default {
               console.log('Fetching breaking news');
               articleIds = (await kv.get('news_db:breaking', { type: 'json' })) || [];
             }
-          } else if (urlQuery.has('search')) {
-            const searchTerm = urlQuery.get('search').toLowerCase();
-            console.log(`Fetching articles for search term: ${searchTerm}`);
-            const searchKeywords = Array.from(extractKeywords(searchTerm));
-            if (searchKeywords.length === 0) {
-              articleIds = [];
-            } else {
-              const keywordArticleIds = await Promise.all(
-                searchKeywords.map(keyword =>
-                  kv.get(`news_db:search_index:${keyword}`, { type: 'json' })
-                )
-              );
-              let matchingArticleIds = keywordArticleIds[0] || [];
-              for (let i = 1; i < keywordArticleIds.length; i++) {
-                const currentIds = keywordArticleIds[i] || [];
-                matchingArticleIds = matchingArticleIds.filter(id => currentIds.includes(id));
-              }
-              articleIds = matchingArticleIds;
-            }
           } else {
             console.log('Fetching all articles');
             const keys = await kv.list({ prefix: 'news_db:articles:' });
@@ -244,8 +169,6 @@ export default {
           await kv.put('news_db:breaking', JSON.stringify(breakingList));
         }
 
-        await updateSearchIndex(kv, id, fullArticleData.title, fullArticleData.content);
-
         return new Response(JSON.stringify(fullArticleData), {
           status: 201,
           headers: corsHeaders,
@@ -292,12 +215,6 @@ export default {
           await kv.put('news_db:breaking', JSON.stringify(breakingList));
         }
 
-        const oldKeywords = new Set([
-          ...extractKeywords(existingArticle.title),
-          ...extractKeywords(existingArticle.content),
-        ]);
-        await updateSearchIndex(kv, id, updatedArticle.title, updatedArticle.content, oldKeywords);
-
         return new Response(JSON.stringify(updatedArticle), {
           headers: corsHeaders,
         });
@@ -321,8 +238,6 @@ export default {
           const breakingList = (await kv.get('news_db:breaking', { type: 'json' })) || [];
           await kv.put('news_db:breaking', JSON.stringify(breakingList.filter(articleId => articleId !== id)));
         }
-
-        await removeFromSearchIndex(kv, id, article.title, article.content);
 
         await kv.delete(`news_db:articles:${id}`);
 
