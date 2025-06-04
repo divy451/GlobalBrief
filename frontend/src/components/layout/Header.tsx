@@ -1,15 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Menu, X, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
+import { useSearchSuggestions } from '../../hooks/useNewsData';
+import { Article } from '../../types/news';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  const { data: suggestions, isLoading } = useSearchSuggestions(searchQuery);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
@@ -19,7 +25,15 @@ const Header = () => {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
       setIsMenuOpen(false);
+      setIsPopupOpen(false);
     }
+  };
+
+  const handleSuggestionClick = (query: string) => {
+    navigate(`/search?q=${encodeURIComponent(query)}`);
+    setSearchQuery('');
+    setIsPopupOpen(false);
+    setIsMenuOpen(false);
   };
 
   useEffect(() => {
@@ -35,8 +49,27 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (searchQuery.trim() && (searchFocused || isMenuOpen)) {
+      setIsPopupOpen(true);
+    } else {
+      setIsPopupOpen(false);
+    }
+  }, [searchQuery, searchFocused, isMenuOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setIsPopupOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const categories = [
-    { name: "Home", path: "/" }, // Add Home link
+    { name: "Home", path: "/" },
     { name: "World", path: "/category/world" },
     { name: "Politics", path: "/category/politics" },
     { name: "Business", path: "/category/business" },
@@ -46,6 +79,52 @@ const Header = () => {
     { name: "Sports", path: "/category/sports" },
     { name: "Entertainment", path: "/category/entertainment" },
   ];
+
+  const renderSearchForm = (isMobile: boolean) => (
+    <div className="relative" ref={searchRef}>
+      <form onSubmit={handleSearch} className={`relative transition-all duration-300 ${isMobile ? '' : searchFocused ? 'w-64' : 'w-48'}`}>
+        <input
+          type="text"
+          placeholder="Search..."
+          className={`${isMobile ? 'pl-12' : 'pl-10'} pr-4 py-1.5 w-full border border-gray-300 dark:border-gray-700 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-600 transition-all duration-300 bg-white dark:bg-gray-800 dark:text-white`}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          aria-autocomplete="list"
+          aria-controls="search-suggestions"
+          role="combobox"
+        />
+        <button type="submit" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+          <Search size={16} />
+        </button>
+      </form>
+      {isPopupOpen && (
+        <div
+          id="search-suggestions"
+          role="listbox"
+          className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50 animate-fade-in"
+        >
+          {isLoading ? (
+            <div className="p-3 text-sm text-gray-500 dark:text-gray-400">Loading...</div>
+          ) : suggestions && suggestions.length > 0 ? (
+            suggestions.map((article: Article) => (
+              <button
+                key={article.id}
+                onMouseDown={() => handleSuggestionClick(article.title)}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200"
+                role="option"
+              >
+                {article.title}
+              </button>
+            ))
+          ) : (
+            <div className="p-3 text-sm text-gray-500 dark:text-gray-400">No results found</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <header className={`sticky top-0 z-50 bg-white dark:bg-gray-900 transition-all duration-300 ${isScrolled ? 'shadow-md' : ''}`}>
@@ -76,20 +155,7 @@ const Header = () => {
           </Link>
 
           <div className="hidden md:flex items-center space-x-4 animate-slide-in-right">
-            <form onSubmit={handleSearch} className={`relative transition-all duration-300 ${searchFocused ? 'w-64' : 'w-48'}`}>
-              <input
-                type="text"
-                placeholder="Search..."
-                className="pl-10 pr-4 py-1.5 w-full border border-gray-300 dark:border-gray-700 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-600 transition-all duration-300 bg-white dark:bg-gray-800 dark:text-white"
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button type="submit" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                <Search size={16} />
-              </button>
-            </form>
+            {renderSearchForm(false)}
           </div>
 
           <button
@@ -122,18 +188,7 @@ const Header = () => {
       {isMenuOpen && (
         <div className="md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 animate-fade-in">
           <div className="container py-4">
-            <form onSubmit={handleSearch} className="relative mb-4">
-              <input
-                type="text"
-                placeholder="Search..."
-                className="pl-12 pr-4 py-1.5 w-full border border-gray-300 dark:border-gray-700 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-600 bg-white dark:bg-gray-800 dark:text-white"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button type="submit" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                <Search size={16} />
-              </button>
-            </form>
+            {renderSearchForm(true)}
           </div>
         </div>
       )}

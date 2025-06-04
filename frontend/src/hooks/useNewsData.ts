@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useDebounce } from 'use-debounce';
 import { Article, Category, BreakingNewsItem } from "../types/news";
 
 interface ApiArticle {
@@ -11,18 +12,16 @@ interface ApiArticle {
   image?: string;
   excerpt?: string;
   isBreaking?: boolean;
-  imageCredit?: string; // Add this to match the API response
+  imageCredit?: string;
 }
 
-// Update Article interface in src/types/news.ts, assuming it's defined there
-// For now, we'll modify the mapping and assume the interface is updated accordingly
-
-const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean }, limit?: number, isPublic: boolean = false): Promise<Article[]> => {
+const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean; search?: string }, limit?: number, isPublic: boolean = false): Promise<Article[]> => {
   const token = isPublic ? null : localStorage.getItem('admin_token');
   console.log('fetchArticles: Fetching with token:', token);
   const query = new URLSearchParams();
   if (filter?.category) query.append('category', filter.category);
   if (filter?.isBreaking !== undefined) query.append('isBreaking', filter.isBreaking.toString());
+  if (filter?.search) query.append('search', filter.search);
   if (limit) query.append('limit', limit.toString());
   
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -58,7 +57,7 @@ const fetchArticles = async (filter?: { category?: string; isBreaking?: boolean 
     excerpt: article.excerpt || '',
     isBreaking: article.isBreaking || false,
     path: `/article/${article._id}`,
-    imageCredit: article.imageCredit, // Add this mapping
+    imageCredit: article.imageCredit,
   }));
 };
 
@@ -96,7 +95,7 @@ const fetchArticleById = async (id: string): Promise<Article> => {
     excerpt: article.excerpt || '',
     isBreaking: article.isBreaking || false,
     path: `/article/${article._id}`,
-    imageCredit: article.imageCredit, // Add this mapping
+    imageCredit: article.imageCredit,
   };
 };
 
@@ -231,5 +230,32 @@ export function useNewsData() {
     queryKey: ["articles"],
     queryFn: () => fetchArticles(),
     retry: 1,
+  });
+}
+
+export function useSearchArticles(searchQuery: string) {
+  return useQuery<Article[], Error>({
+    queryKey: ["searchArticles", searchQuery],
+    queryFn: () => fetchArticles({ search: searchQuery.trim() }, undefined, true),
+    enabled: !!searchQuery.trim(),
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useSearchSuggestions(searchQuery: string) {
+  const [debouncedQuery] = useDebounce(searchQuery, 300);
+  return useQuery<Article[], Error>({
+    queryKey: ['searchSuggestions', debouncedQuery],
+    queryFn: async () => {
+      if (!debouncedQuery.trim()) return [];
+      const response = await fetch(`https://news-api.poddara766.workers.dev/api/news?search=${encodeURIComponent(debouncedQuery)}&limit=5`);
+      if (!response.ok) throw new Error('Failed to fetch search suggestions');
+      const data = await response.json();
+      return data || [];
+    },
+    enabled: !!debouncedQuery.trim(),
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
   });
 }
