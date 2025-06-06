@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // Add useState import
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -43,18 +43,19 @@ const NewsCard: React.FC<NewsCardProps> = ({
   };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    console.log(`Image load failed for ${imgSrc}, retry count: ${retryCount}`); // Debug log
     if (retryCount < maxRetries) {
       // Retry loading the original image after a delay
       setTimeout(() => {
         setRetryCount(retryCount + 1);
         setImgSrc(image); // Reset to original image URL to retry
+        console.log(`Retrying image load (${retryCount + 1}/${maxRetries}) for ${image}`);
       }, 1000 * (retryCount + 1)); // Exponential backoff: 1s, 2s
     } else {
       // After max retries, fall back to the fallback image
-      if (e.currentTarget.src !== fallbackImage) {
-        e.currentTarget.src = fallbackImage;
-        e.currentTarget.onerror = null;
-      }
+      console.log(`Max retries reached, falling back to ${fallbackImage}`);
+      setImgSrc(fallbackImage); // Update state to fallback image
+      e.currentTarget.onerror = null; // Prevent further error loops
     }
   };
 
