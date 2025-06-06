@@ -26,7 +26,9 @@ const NewsCard: React.FC<NewsCardProps> = ({
   horizontal = false,
   compact = false
 }) => {
-  const fallbackImage = '/assets/fallback-image.jpg';
+  // Temporary known good fallback image URL for testing
+  // Replace this with the correct path to your local fallback image, e.g., '/assets/fallback-image.jpg'
+  const fallbackImage = 'https://via.placeholder.com/150x150.png?text=Fallback+Image';
   const navigate = useNavigate();
   const [imgSrc, setImgSrc] = useState(image); // Track the current image source
   const [retryCount, setRetryCount] = useState(0); // Track retry attempts
@@ -43,7 +45,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
   };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    console.log(`Image load failed for ${imgSrc}, retry count: ${retryCount}`); // Debug log
+    console.log(`Image load failed for ${imgSrc}, retry count: ${retryCount}`);
     if (retryCount < maxRetries) {
       // Retry loading the original image after a delay
       setTimeout(() => {
@@ -54,7 +56,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
     } else {
       // After max retries, fall back to the fallback image
       console.log(`Max retries reached, falling back to ${fallbackImage}`);
-      setImgSrc(fallbackImage); // Update state to fallback image
+      setImgSrc(fallbackImage);
       e.currentTarget.onerror = null; // Prevent further error loops
     }
   };
@@ -66,10 +68,10 @@ const NewsCard: React.FC<NewsCardProps> = ({
     >
       <div className={`relative overflow-hidden ${horizontal ? 'md:w-1/3' : 'w-full'}`}>
         <img
-          src={imgSrc} // Use state-controlled imgSrc
+          src={imgSrc || fallbackImage} // Fallback to placeholder if imgSrc is empty
           alt={title}
           className={`w-full h-48 md:h-auto object-cover ${horizontal ? 'md:h-full' : ''}`}
-          onError={handleImageError} // Use the new error handler
+          onError={handleImageError}
         />
         {category && (
           <span className="absolute top-0 left-0 bg-news-accent text-white px-2 py-1 text-xs font-medium">
