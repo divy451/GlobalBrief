@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Keep useNavigate
+import React, { useState } from 'react'; // Add useState import
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 
 interface NewsCardProps {
@@ -26,10 +26,12 @@ const NewsCard: React.FC<NewsCardProps> = ({
   horizontal = false,
   compact = false
 }) => {
-  const fallbackImage = '/assets/fallback-image.jpg'; // Keep fallback image functionality
-  const navigate = useNavigate(); // Keep useNavigate functionality
+  const fallbackImage = '/assets/fallback-image.jpg';
+  const navigate = useNavigate();
+  const [imgSrc, setImgSrc] = useState(image); // Track the current image source
+  const [retryCount, setRetryCount] = useState(0); // Track retry attempts
+  const maxRetries = 2; // Maximum number of retries
 
-  // Format date for consistency (keep this new functionality)
   const formattedDate = new Date(date).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -37,27 +39,36 @@ const NewsCard: React.FC<NewsCardProps> = ({
   });
 
   const handleCardClick = () => {
-    navigate(path); // Keep card click navigation functionality
+    navigate(path);
+  };
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    if (retryCount < maxRetries) {
+      // Retry loading the original image after a delay
+      setTimeout(() => {
+        setRetryCount(retryCount + 1);
+        setImgSrc(image); // Reset to original image URL to retry
+      }, 1000 * (retryCount + 1)); // Exponential backoff: 1s, 2s
+    } else {
+      // After max retries, fall back to the fallback image
+      if (e.currentTarget.src !== fallbackImage) {
+        e.currentTarget.src = fallbackImage;
+        e.currentTarget.onerror = null;
+      }
+    }
   };
 
   return (
-    // Make the entire card clickable (keep this new functionality)
     <Card
       className={`news-card h-full cursor-pointer ${horizontal ? 'flex flex-col md:flex-row' : ''} ${featured ? 'border-l-4 border-news-accent' : ''}`}
       onClick={handleCardClick}
     >
       <div className={`relative overflow-hidden ${horizontal ? 'md:w-1/3' : 'w-full'}`}>
         <img
-          src={image}
+          src={imgSrc} // Use state-controlled imgSrc
           alt={title}
-          // Reverted this line to exactly match the old code's styling for md:h-auto
           className={`w-full h-48 md:h-auto object-cover ${horizontal ? 'md:h-full' : ''}`}
-          onError={(e) => { // Keep error handling for fallback image
-            if (e.currentTarget.src !== fallbackImage) {
-              e.currentTarget.src = fallbackImage;
-              e.currentTarget.onerror = null;
-            }
-          }}
+          onError={handleImageError} // Use the new error handler
         />
         {category && (
           <span className="absolute top-0 left-0 bg-news-accent text-white px-2 py-1 text-xs font-medium">
@@ -67,7 +78,6 @@ const NewsCard: React.FC<NewsCardProps> = ({
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
       </div>
       <CardContent className={`p-4 ${horizontal ? 'md:w-2/3' : ''}`}>
-        {/* Only the title is a Link for original styling, but the whole card clicks */}
         <Link to={path} onClick={(e) => e.stopPropagation()}>
           <h3 className={`font-bold mb-2 ${featured ? 'text-xl md:text-2xl' : compact ? 'text-base' : 'text-lg'} hover:text-news-accent transition-colors`}>
             {title}
