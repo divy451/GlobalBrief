@@ -10,61 +10,56 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-const extractKeywords = (text) => {
-  if (!text) return new Set();
-  return new Set(
-    text
-      .toLowerCase()
-      .replace(/[^\w\s]/g, '')
-      .split(/\s+/)
-      .filter(word => word.length > 2)
-      .slice(0, 50)
-  );
-};
+async function getArticleFromD1(d1, id) {
+  const article = await d1.prepare("SELECT * FROM articles WHERE _id = ?").bind(id).first();
+  return article || null;
+}
 
-const updateSearchIndex = async (kv, articleId, title, content, oldKeywords = new Set()) => {
-  const newKeywords = new Set([...extractKeywords(title), ...extractKeywords(content)]);
-  
-  for (const keyword of oldKeywords) {
-    if (!newKeywords.has(keyword)) {
-      const indexKey = `news_db:search_index:${keyword}`;
-      let indexedIds = (await kv.get(indexKey, { type: 'json' })) || [];
-      indexedIds = indexedIds.filter(id => id !== articleId);
-      if (indexedIds.length > 0) {
-        await kv.put(indexKey, JSON.stringify(indexedIds));
-      } else {
-        await kv.delete(indexKey);
-      }
+async function getArticles(env, filter = {}) {
+  const { NEWS_DB } = env;
+  let query = "SELECT * FROM articles"; // Fetch all columns directly for better performance
+  let bindings = [];
+  let conditions = [];
+
+  if (filter.category) {
+    // Fetch article IDs from categories table
+    const category = await NEWS_DB.prepare("SELECT article_ids FROM categories WHERE name = ?").bind(filter.category).first();
+    if (!category || !JSON.parse(category.article_ids).length) {
+      return [];
     }
+    conditions.push("_id IN (SELECT value FROM json_each(?))");
+    bindings.push(category.article_ids);
+  } else if (filter.isBreaking) {
+    // Fetch breaking news article IDs
+    const breaking = await NEWS_DB.prepare("SELECT article_ids FROM breaking_news LIMIT 1").first();
+    if (!breaking || !JSON.parse(breaking.article_ids).length) {
+      return [];
+    }
+    conditions.push("_id IN (SELECT value FROM json_each(?))");
+    bindings.push(breaking.article_ids);
+  } else {
+    // Default case: sort by date
+    conditions.push("1=1"); // Placeholder for WHERE clause
   }
 
-  for (const keyword of newKeywords) {
-    if (!oldKeywords.has(keyword) || true) {
-      const indexKey = `news_db:search_index:${keyword}`;
-      let indexedIds = (await kv.get(indexKey, { type: 'json' })) || [];
-      if (!indexedIds.includes(articleId)) {
-        indexedIds.push(articleId);
-        await kv.put(indexKey, JSON.stringify(indexedIds));
-      }
-    }
+  // Add WHERE clause if conditions exist
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
   }
 
-  return newKeywords;
-};
+  // Always sort by date descending
+  query += " ORDER BY date DESC";
 
-const removeFromSearchIndex = async (kv, articleId, title, content) => {
-  const keywords = new Set([...extractKeywords(title), ...extractKeywords(content)]);
-  for (const keyword of keywords) {
-    const indexKey = `news_db:search_index:${keyword}`;
-    let indexedIds = (await kv.get(indexKey, { type: 'json' })) || [];
-    indexedIds = indexedIds.filter(id => id !== articleId);
-    if (indexedIds.length > 0) {
-      await kv.put(indexKey, JSON.stringify(indexedIds));
-    } else {
-      await kv.delete(indexKey);
-    }
-  }
-};
+  // Implement pagination
+  const page = Math.max(1, parseInt(filter.page) || 1);
+  const limit = Math.min(50, parseInt(filter.limit) || 10); // Cap at 50 for performance
+  const offset = (page - 1) * limit;
+  query += " LIMIT ? OFFSET ?";
+  bindings.push(limit, offset);
+
+  const articles = await NEWS_DB.prepare(query).bind(...bindings).all();
+  return articles.results || [];
+}
 
 export default {
   async fetch(request, env) {
@@ -79,10 +74,9 @@ export default {
       const url = new URL(request.url);
       const method = request.method;
 
-      const kv = env.NEWS_KV;
-      if (!kv) {
-        console.error('Error: NEWS_KV binding is undefined. Check wrangler.toml and deployment environment.');
-        throw new Error('NEWS_KV binding is not available');
+      const d1 = env.NEWS_DB;
+      if (!d1) {
+        throw new Error('NEWS_DB binding is not available');
       }
 
       console.log(`Request received: ${method} ${url.pathname}${url.search}`);
@@ -101,7 +95,7 @@ export default {
 
       if (url.pathname === '/auth/login' && method === 'POST') {
         const { username, password } = await request.json();
-        const user = await kv.get(`news_db:users:${username}`, { type: 'json' });
+        const user = await d1.prepare("SELECT * FROM users WHERE username = ?").bind(username).first();
         if (!user) throw new Error('Invalid credentials');
         const isMatch = await compare(password, user.password);
         if (!isMatch) throw new Error('Invalid credentials');
@@ -117,92 +111,37 @@ export default {
       const normalizedPathname = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
 
       if (normalizedPathname === '/api/categories' && method === 'GET') {
-        console.log('Fetching all categories');
-        const categoryKeys = await kv.list({ prefix: 'news_db:categories:' });
-        const categories = categoryKeys.keys.map(key => {
-          const categoryName = key.name.split(':')[2];
+        const categories = await d1.prepare("SELECT name FROM categories").all();
+        const categoryList = categories.results.map(row => {
+          const categoryName = row.name;
           const slug = categoryName.replace(/\s+/g, '-');
           return {
             name: categoryName,
             path: `/category/${slug}`
           };
         });
-
-        console.log(`Categories fetched: ${JSON.stringify(categories)}`);
-
-        return new Response(JSON.stringify(categories), {
+        return new Response(JSON.stringify(categoryList), {
           headers: corsHeaders,
         });
       }
 
       if (normalizedPathname === '/api/news' && method === 'GET') {
-        try {
-          const urlQuery = url.searchParams;
-          let articleIds = [];
-
-          if (urlQuery.has('category')) {
-            const category = urlQuery.get('category');
-            console.log(`Fetching articles for category: ${category}`);
-            articleIds = (await kv.get(`news_db:categories:${category}`, { type: 'json' })) || [];
-          } else if (urlQuery.has('isBreaking')) {
-            const isBreaking = urlQuery.get('isBreaking') === 'true';
-            if (isBreaking) {
-              console.log('Fetching breaking news');
-              articleIds = (await kv.get('news_db:breaking', { type: 'json' })) || [];
-            }
-          } else if (urlQuery.has('search')) {
-            const searchTerm = urlQuery.get('search').toLowerCase();
-            console.log(`Fetching articles for search term: ${searchTerm}`);
-            const searchKeywords = Array.from(extractKeywords(searchTerm));
-            if (searchKeywords.length === 0) {
-              articleIds = [];
-            } else {
-              const keywordArticleIds = await Promise.all(
-                searchKeywords.map(keyword =>
-                  kv.get(`news_db:search_index:${keyword}`, { type: 'json' })
-                )
-              );
-              let matchingArticleIds = keywordArticleIds[0] || [];
-              for (let i = 1; i < keywordArticleIds.length; i++) {
-                const currentIds = keywordArticleIds[i] || [];
-                matchingArticleIds = matchingArticleIds.filter(id => currentIds.includes(id));
-              }
-              articleIds = matchingArticleIds;
-            }
-          } else {
-            console.log('Fetching all articles');
-            const keys = await kv.list({ prefix: 'news_db:articles:' });
-            articleIds = keys.keys.map(key => key.name.split(':')[2]);
-          }
-
-          console.log(`Article IDs found: ${JSON.stringify(articleIds)}`);
-
-          const limit = urlQuery.has('limit') ? Number(urlQuery.get('limit')) : articleIds.length;
-          articleIds = articleIds.slice(0, limit);
-
-          const articles = [];
-          for (const id of articleIds) {
-            const article = await kv.get(`news_db:articles:${id}`, { type: 'json' });
-            if (article) articles.push(article);
-          }
-
-          console.log(`Articles fetched: ${JSON.stringify(articles)}`);
-
-          return new Response(JSON.stringify(articles), {
-            headers: corsHeaders,
-          });
-        } catch (error) {
-          console.error(`Error in /api/news GET: ${error.message}`);
-          return new Response(JSON.stringify({ error: 'Failed to fetch articles: ' + error.message }), {
-            status: 500,
-            headers: corsHeaders,
-          });
-        }
+        const urlQuery = url.searchParams;
+        const filter = {
+          category: urlQuery.get('category'),
+          isBreaking: urlQuery.get('isBreaking') === 'true',
+          limit: urlQuery.has('limit') ? Number(urlQuery.get('limit')) : undefined,
+          page: urlQuery.has('page') ? Number(urlQuery.get('page')) : undefined,
+        };
+        const articles = await getArticles(env, filter);
+        return new Response(JSON.stringify(articles), {
+          headers: corsHeaders,
+        });
       }
 
       if (normalizedPathname.startsWith('/api/news/') && method === 'GET') {
         const id = normalizedPathname.split('/')[3];
-        const article = await kv.get(`news_db:articles:${id}`, { type: 'json' });
+        const article = await getArticleFromD1(d1, id);
         if (!article) {
           return new Response(JSON.stringify({ error: 'Article not found' }), {
             status: 404,
@@ -225,26 +164,62 @@ export default {
         }
         const id = crypto.randomUUID();
         const fullArticleData = {
-          ...articleData,
           _id: id,
-          date: new Date().toISOString(),
+          title: articleData.title,
+          content: articleData.content,
+          category: articleData.category,
+          author: articleData.author || null,
+          excerpt: articleData.excerpt || null,
           isBreaking: articleData.isBreaking === 'true' || articleData.isBreaking === true || false,
+          date: new Date().toISOString(),
+          image: articleData.image || null,
+          imageCredit: articleData.imageCredit || null,
         };
 
-        await kv.put(`news_db:articles:${id}`, JSON.stringify(fullArticleData));
+        // Write to D1
+        await d1.prepare(
+          `INSERT INTO articles (_id, title, content, category, author, excerpt, isBreaking, date, image, imageCredit) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+          .bind(
+            id,
+            fullArticleData.title,
+            fullArticleData.content,
+            fullArticleData.category,
+            fullArticleData.author,
+            fullArticleData.excerpt,
+            fullArticleData.isBreaking ? 1 : 0,
+            fullArticleData.date,
+            fullArticleData.image,
+            fullArticleData.imageCredit
+          )
+          .run();
 
-        const categoryKey = `news_db:categories:${articleData.category}`;
-        const categoryList = (await kv.get(categoryKey, { type: 'json' })) || [];
-        categoryList.push(id);
-        await kv.put(categoryKey, JSON.stringify(categoryList));
-
-        if (fullArticleData.isBreaking) {
-          const breakingList = (await kv.get('news_db:breaking', { type: 'json' })) || [];
-          breakingList.push(id);
-          await kv.put('news_db:breaking', JSON.stringify(breakingList));
+        // Update category in D1
+        const category = await d1.prepare("SELECT article_ids FROM categories WHERE name = ?").bind(articleData.category).first();
+        let categoryList = category ? JSON.parse(category.article_ids) : [];
+        if (!category) {
+          await d1.prepare("INSERT INTO categories (name, article_ids) VALUES (?, '[]')").bind(articleData.category).run();
+          categoryList = [];
         }
+        categoryList.push(id);
+        await d1.prepare("UPDATE categories SET article_ids = ? WHERE name = ?")
+          .bind(JSON.stringify(categoryList), articleData.category)
+          .run();
 
-        await updateSearchIndex(kv, id, fullArticleData.title, fullArticleData.content);
+        // Update breaking news in D1
+        if (fullArticleData.isBreaking) {
+          const breaking = await d1.prepare("SELECT article_ids FROM breaking_news LIMIT 1").first();
+          let breakingList = breaking ? JSON.parse(breaking.article_ids) : [];
+          if (!breaking) {
+            await d1.prepare("INSERT INTO breaking_news (article_ids) VALUES ('[]')").run();
+            breakingList = [];
+          }
+          breakingList.push(id);
+          await d1.prepare("UPDATE breaking_news SET article_ids = ? WHERE id = 1")
+            .bind(JSON.stringify(breakingList))
+            .run();
+        }
 
         return new Response(JSON.stringify(fullArticleData), {
           status: 201,
@@ -255,7 +230,7 @@ export default {
       if (normalizedPathname.startsWith('/api/news/') && method === 'PUT') {
         await authenticateToken(request.headers);
         const id = normalizedPathname.split('/')[3];
-        const existingArticle = await kv.get(`news_db:articles:${id}`, { type: 'json' });
+        const existingArticle = await getArticleFromD1(d1, id);
         if (!existingArticle) {
           return new Response(JSON.stringify({ error: 'Article not found' }), {
             status: 404,
@@ -272,31 +247,64 @@ export default {
           isBreaking: updatedData.isBreaking !== undefined ? (updatedData.isBreaking === 'true' || updatedData.isBreaking === true) : existingArticle.isBreaking,
         };
 
-        await kv.put(`news_db:articles:${id}`, JSON.stringify(updatedArticle));
+        // Update in D1
+        await d1.prepare(
+          `UPDATE articles 
+           SET title = ?, content = ?, category = ?, author = ?, excerpt = ?, isBreaking = ?, date = ?, image = ?, imageCredit = ? 
+           WHERE _id = ?`
+        )
+          .bind(
+            updatedArticle.title,
+            updatedArticle.content,
+            updatedArticle.category,
+            updatedArticle.author,
+            updatedArticle.excerpt,
+            updatedArticle.isBreaking ? 1 : 0,
+            updatedArticle.date,
+            updatedArticle.image,
+            updatedArticle.imageCredit,
+            id
+          )
+          .run();
 
+        // Update category in D1
         if (updatedData.category && updatedData.category !== oldCategory) {
-          const oldCategoryList = (await kv.get(`news_db:categories:${oldCategory}`, { type: 'json' })) || [];
-          await kv.put(`news_db:categories:${oldCategory}`, JSON.stringify(oldCategoryList.filter(articleId => articleId !== id)));
-          const newCategoryList = (await kv.get(`news_db:categories:${updatedData.category}`, { type: 'json' })) || [];
+          const oldCategoryData = await d1.prepare("SELECT article_ids FROM categories WHERE name = ?").bind(oldCategory).first();
+          let oldCategoryList = oldCategoryData ? JSON.parse(oldCategoryData.article_ids) : [];
+          oldCategoryList = oldCategoryList.filter(articleId => articleId !== id);
+          await d1.prepare("UPDATE categories SET article_ids = ? WHERE name = ?")
+            .bind(JSON.stringify(oldCategoryList), oldCategory)
+            .run();
+
+          const newCategoryData = await d1.prepare("SELECT article_ids FROM categories WHERE name = ?").bind(updatedData.category).first();
+          let newCategoryList = newCategoryData ? JSON.parse(newCategoryData.article_ids) : [];
+          if (!newCategoryData) {
+            await d1.prepare("INSERT INTO categories (name, article_ids) VALUES (?, '[]')").bind(updatedData.category).run();
+            newCategoryList = [];
+          }
           newCategoryList.push(id);
-          await kv.put(`news_db:categories:${updatedData.category}`, JSON.stringify(newCategoryList));
+          await d1.prepare("UPDATE categories SET article_ids = ? WHERE name = ?")
+            .bind(JSON.stringify(newCategoryList), updatedData.category)
+            .run();
         }
 
+        // Update breaking news in D1
         if (updatedData.isBreaking !== undefined && (updatedData.isBreaking === 'true' || updatedData.isBreaking === true) !== oldIsBreaking) {
-          let breakingList = (await kv.get('news_db:breaking', { type: 'json' })) || [];
+          const breaking = await d1.prepare("SELECT article_ids FROM breaking_news LIMIT 1").first();
+          let breakingList = breaking ? JSON.parse(breaking.article_ids) : [];
+          if (!breaking) {
+            await d1.prepare("INSERT INTO breaking_news (article_ids) VALUES ('[]')").run();
+            breakingList = [];
+          }
           if (updatedArticle.isBreaking) {
             if (!breakingList.includes(id)) breakingList.push(id);
           } else {
             breakingList = breakingList.filter(articleId => articleId !== id);
           }
-          await kv.put('news_db:breaking', JSON.stringify(breakingList));
+          await d1.prepare("UPDATE breaking_news SET article_ids = ? WHERE id = 1")
+            .bind(JSON.stringify(breakingList))
+            .run();
         }
-
-        const oldKeywords = new Set([
-          ...extractKeywords(existingArticle.title),
-          ...extractKeywords(existingArticle.content),
-        ]);
-        await updateSearchIndex(kv, id, updatedArticle.title, updatedArticle.content, oldKeywords);
 
         return new Response(JSON.stringify(updatedArticle), {
           headers: corsHeaders,
@@ -306,7 +314,7 @@ export default {
       if (normalizedPathname.startsWith('/api/news/') && method === 'DELETE') {
         await authenticateToken(request.headers);
         const id = normalizedPathname.split('/')[3];
-        const article = await kv.get(`news_db:articles:${id}`, { type: 'json' });
+        const article = await getArticleFromD1(d1, id);
         if (!article) {
           return new Response(JSON.stringify({ error: 'Article not found' }), {
             status: 404,
@@ -314,17 +322,26 @@ export default {
           });
         }
 
-        const categoryList = (await kv.get(`news_db:categories:${article.category}`, { type: 'json' })) || [];
-        await kv.put(`news_db:categories:${article.category}`, JSON.stringify(categoryList.filter(articleId => articleId !== id)));
+        // Delete from D1
+        await d1.prepare("DELETE FROM articles WHERE _id = ?").bind(id).run();
 
+        // Update category in D1
+        const categoryData = await d1.prepare("SELECT article_ids FROM categories WHERE name = ?").bind(article.category).first();
+        let categoryList = categoryData ? JSON.parse(categoryData.article_ids) : [];
+        categoryList = categoryList.filter(articleId => articleId !== id);
+        await d1.prepare("UPDATE categories SET article_ids = ? WHERE name = ?")
+          .bind(JSON.stringify(categoryList), article.category)
+          .run();
+
+        // Update breaking news in D1
         if (article.isBreaking) {
-          const breakingList = (await kv.get('news_db:breaking', { type: 'json' })) || [];
-          await kv.put('news_db:breaking', JSON.stringify(breakingList.filter(articleId => articleId !== id)));
+          const breaking = await d1.prepare("SELECT article_ids FROM breaking_news LIMIT 1").first();
+          let breakingList = breaking ? JSON.parse(breaking.article_ids) : [];
+          breakingList = breakingList.filter(articleId => articleId !== id);
+          await d1.prepare("UPDATE breaking_news SET article_ids = ? WHERE id = 1")
+            .bind(JSON.stringify(breakingList))
+            .run();
         }
-
-        await removeFromSearchIndex(kv, id, article.title, article.content);
-
-        await kv.delete(`news_db:articles:${id}`);
 
         return new Response(JSON.stringify({ message: 'Article deleted' }), {
           headers: corsHeaders,
@@ -341,19 +358,8 @@ export default {
 
         await authenticateToken(request.headers);
 
-        const articleKeys = await kv.list({ prefix: 'news_db:articles:' });
-        const articles = [];
-        for (const key of articleKeys.keys) {
-          const article = await kv.get(key.name, { type: 'json' });
-          if (article) articles.push(article);
-        }
-
-        const userKeys = await kv.list({ prefix: 'news_db:users:' });
-        const users = [];
-        for (const key of userKeys.keys) {
-          const user = await kv.get(key.name, { type: 'json' });
-          if (user) users.push(user);
-        }
+        const articles = (await d1.prepare("SELECT * FROM articles").all()).results || [];
+        const users = (await d1.prepare("SELECT * FROM users").all()).results || [];
 
         let html = `
           <html>
@@ -419,22 +425,6 @@ export default {
 
         return new Response(html, {
           headers: { 'Content-Type': 'text/html' },
-        });
-      }
-
-      if (normalizedPathname === '/migrate-search-index' && method === 'POST') {
-        await authenticateToken(request.headers);
-        const articleKeys = await kv.list({ prefix: 'news_db:articles:' });
-        let count = 0;
-        for (const key of articleKeys.keys) {
-          const article = await kv.get(key.name, { type: 'json' });
-          if (article) {
-            await updateSearchIndex(kv, article._id, article.title, article.content);
-            count++;
-          }
-        }
-        return new Response(JSON.stringify({ message: `Indexed ${count} articles` }), {
-          headers: corsHeaders,
         });
       }
 
