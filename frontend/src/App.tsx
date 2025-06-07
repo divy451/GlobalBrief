@@ -43,42 +43,63 @@ const ScrollToTop = () => {
   return null;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <TooltipProvider>
-        <HelmetProvider>
-          <Helmet>
-            <script
-              async
-              src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8618999712463527"
-              crossOrigin="anonymous"
-            ></script>
-          </Helmet>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <ScrollToTop />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/category/:slug" element={<CategoryPage />} />
-              <Route path="/article/:id" element={<ArticlePage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route element={<AdminRouteGuard />}>
-                <Route path="/admin" element={<AdminPortal />} />
-                <Route path="/admin/new" element={<NewArticle />} />
-                <Route path="/admin/edit/:id" element={<EditArticle />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </HelmetProvider>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Prefetch article data to trigger early image loading
+  useEffect(() => {
+    const prefetchArticles = async () => {
+      try {
+        await queryClient.prefetchQuery({
+          queryKey: ['articles'],
+          queryFn: async () => {
+            const response = await fetch('https://news-api.poddara766.workers.dev/');
+            if (!response.ok) throw new Error('Failed to fetch articles');
+            return response.json();
+          },
+        });
+      } catch (error) {
+        console.error('Failed to prefetch articles:', error);
+      }
+    };
+    prefetchArticles();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <TooltipProvider>
+          <HelmetProvider>
+            <Helmet>
+              <script
+                async
+                src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8618999712463527"
+                crossOrigin="anonymous"
+              ></script>
+            </Helmet>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <ScrollToTop />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/category/:slug" element={<CategoryPage />} />
+                <Route path="/article/:id" element={<ArticlePage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route element={<AdminRouteGuard />}>
+                  <Route path="/admin" element={<AdminPortal />} />
+                  <Route path="/admin/new" element={<NewArticle />} />
+                  <Route path="/admin/edit/:id" element={<EditArticle />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </HelmetProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

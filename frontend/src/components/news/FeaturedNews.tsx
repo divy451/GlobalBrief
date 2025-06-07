@@ -1,6 +1,6 @@
 import React from 'react';
 import NewsCard from './NewsCard';
-import { Article } from '@/types/news'; // Keep Article interface import
+import { Article } from '@/types/news';
 
 interface FeaturedNewsProps {
   mainArticle: Article;
@@ -13,7 +13,7 @@ const FeaturedNews: React.FC<FeaturedNewsProps> = ({ mainArticle, secondaryArtic
       <div className="container">
         <h2 className="text-2xl font-bold mb-6 pb-2 border-b border-gray-200 flex items-center">
           <span className="relative">
-            Featured News {/* Reverted heading text to "Featured News" */}
+            Featured News
             <span className="absolute -bottom-2 left-0 w-1/3 h-1 bg-news-accent"></span>
           </span>
         </h2>
@@ -24,7 +24,7 @@ const FeaturedNews: React.FC<FeaturedNewsProps> = ({ mainArticle, secondaryArtic
               id={mainArticle.id}
               title={mainArticle.title}
               excerpt={mainArticle.excerpt}
-              image={mainArticle.image} // Removed explicit placeholder image
+              image={mainArticle.image}
               category={mainArticle.category}
               date={mainArticle.date}
               path={mainArticle.path}
@@ -43,7 +43,7 @@ const FeaturedNews: React.FC<FeaturedNewsProps> = ({ mainArticle, secondaryArtic
                   id={article.id}
                   title={article.title}
                   excerpt={article.excerpt}
-                  image={article.image} // Removed explicit placeholder image
+                  image={article.image}
                   category={article.category}
                   date={article.date}
                   path={article.path}
