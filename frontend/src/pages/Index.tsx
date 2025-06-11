@@ -11,7 +11,6 @@ import {
   useCategories,
   useAllCategoryArticles 
 } from '@/hooks/useNewsData';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const Index: React.FC = () => {
   const { data: breakingNewsData, isLoading: isLoadingBreaking, error: breakingError } = useBreakingNews();
@@ -49,7 +48,9 @@ const Index: React.FC = () => {
   return (
     <MainLayout>
       {isLoadingBreaking ? (
-        <LoadingSpinner />
+        <div className="flex justify-center items-center h-32">
+          <span className="loader"></span>
+        </div>
       ) : breakingError ? (
         <section className="mb-8 p-4 border border-red-200 rounded-lg bg-white">
           <h2 className="text-2xl font-semibold mb-4">Breaking News</h2>
@@ -66,7 +67,9 @@ const Index: React.FC = () => {
       
       <div className="container px-0 sm:px-4 py-8">
         {isLoadingFeatured ? (
-          <LoadingSpinner />
+          <div className="flex justify-center items-center h-32">
+            <span className="loader"></span>
+          </div>
         ) : featuredError ? (
           <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
             <h2 className="text-2xl font-semibold mb-4">Featured Articles</h2>
@@ -78,7 +81,7 @@ const Index: React.FC = () => {
             secondaryArticles={featuredArticlesData.slice(1)}
           />
         ) : (
-          <section className="mb-12 p-4 border border-gray-200 rounded-lg bg-white">
+          <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
             <h2 className="text-2xl font-semibold mb-4">Featured Articles</h2>
             <p className="text-gray-600 text-lg">No featured articles available.</p>
           </section>
@@ -91,14 +94,18 @@ const Index: React.FC = () => {
             </div>
             
             {categoriesLoading ? (
-              <LoadingSpinner />
+              <div className="flex justify-center items-center h-32">
+                <span className="loader"></span>
+              </div>
             ) : categoriesError ? (
               <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
                 <h2 className="text-2xl font-semibold mb-4">Categories</h2>
                 <p className="text-red-600 text-lg">Error loading categories: {categoriesError.message}</p>
               </section>
             ) : categoryArticlesLoading ? (
-              <LoadingSpinner />
+              <div className="flex justify-center items-center h-32">
+                <span className="loader"></span>
+              </div>
             ) : categoryArticlesError ? (
               <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
                 <h2 className="text-2xl font-semibold mb-4">Categories</h2>
