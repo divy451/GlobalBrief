@@ -15,7 +15,7 @@ const ArticlePage: React.FC = () => {
     return (
       <MainLayout>
         <div className="container py-12 text-center">
-          <p>Loading...</p>
+          {null}
         </div>
       </MainLayout>
     );
