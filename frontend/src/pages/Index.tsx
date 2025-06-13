@@ -48,8 +48,18 @@ const Index: React.FC = () => {
   return (
     <MainLayout>
       {isLoadingBreaking ? (
-        <div className="flex justify-center items-center h-32">
-          <span className="loader"></span>
+        <div className="flex justify-center items-center h-24">
+          <div className="flipping">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
         </div>
       ) : breakingError ? (
         <section className="mb-8 p-4 border border-red-200 rounded-lg bg-white">
@@ -67,8 +77,18 @@ const Index: React.FC = () => {
       
       <div className="container px-0 sm:px-4 py-8">
         {isLoadingFeatured ? (
-          <div className="flex justify-center items-center h-32">
-            <span className="loader"></span>
+          <div className="flex justify-center items-center h-24">
+            <div className="flipping">
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
           </div>
         ) : featuredError ? (
           <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
@@ -94,8 +114,18 @@ const Index: React.FC = () => {
             </div>
             
             {categoriesLoading ? (
-              <div className="flex justify-center items-center h-32">
-                <span className="loader"></span>
+              <div className="flex justify-center items-center h-24">
+                <div className="flipping">
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                </div>
               </div>
             ) : categoriesError ? (
               <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
@@ -103,8 +133,18 @@ const Index: React.FC = () => {
                 <p className="text-red-600 text-lg">Error loading categories: {categoriesError.message}</p>
               </section>
             ) : categoryArticlesLoading ? (
-              <div className="flex justify-center items-center h-32">
-                <span className="loader"></span>
+              <div className="flex justify-center items-center h-24">
+                <div className="flipping">
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                </div>
               </div>
             ) : categoryArticlesError ? (
               <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
