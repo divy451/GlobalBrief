@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import BreakingNews from '@/components/news/BreakingNews';
 import FeaturedNews from '@/components/news/FeaturedNews';
@@ -20,20 +20,6 @@ const Index: React.FC = () => {
 
   // Combine all loading states into one
   const isLoading = isLoadingBreaking || isLoadingFeatured || categoriesLoading || categoryArticlesLoading;
-
-  // Track previous loading state to detect when loading completes
-  const prevIsLoadingRef = useRef(isLoading);
-
-  useEffect(() => {
-    // Scroll to top when loading completes (isLoading changes from true to false)
-    if (prevIsLoadingRef.current && !isLoading) {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      });
-    }
-    prevIsLoadingRef.current = isLoading;
-  }, [isLoading]);
 
   useEffect(() => {
     console.log('Index: breakingNewsData:', breakingNewsData);
