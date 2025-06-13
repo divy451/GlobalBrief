@@ -53,14 +53,28 @@ const App = () => {
     const prefetchArticles = async () => {
       setIsLoading(true);
       try {
-        await queryClient.prefetchQuery({
+        const result = await queryClient.prefetchQuery({
           queryKey: ['articles'],
           queryFn: async () => {
             const response = await fetch('https://news-api.poddara766.workers.dev/');
             if (!response.ok) throw new Error('Failed to fetch articles');
-            return response.json();
+            const data = await response.json();
+            // Ensure data is an array; if not, return an empty array
+            return Array.isArray(data) ? data : [];
           },
         });
+
+        // Preload images from the articles
+        const fetchAndPreloadImages = (articles: any[]) => {
+          articles.forEach((article) => {
+            if (article?.image) {
+              const img = new Image();
+              img.src = article.image;
+            }
+          });
+        };
+
+        fetchAndPreloadImages(result || []);
       } catch (error) {
         console.error('Failed to prefetch articles:', error);
       } finally {
