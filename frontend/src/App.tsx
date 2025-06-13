@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "./hooks/useTheme";
 import { Helmet, HelmetProvider } from 'react-helmet-async';
-import MainLayout from '@/components/layout/MainLayout'; // Import MainLayout
+import MainLayout from '@/components/layout/MainLayout';
 
 import Index from "./pages/Index";
 import CategoryPage from "./pages/CategoryPage";
@@ -45,9 +45,13 @@ const ScrollToTop = () => {
 };
 
 const App = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const { pathname } = useLocation();
+
   // Prefetch article data to trigger early image loading
   useEffect(() => {
     const prefetchArticles = async () => {
+      setIsLoading(true);
       try {
         await queryClient.prefetchQuery({
           queryKey: ['articles'],
@@ -59,10 +63,17 @@ const App = () => {
         });
       } catch (error) {
         console.error('Failed to prefetch articles:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
     prefetchArticles();
   }, []);
+
+  // Reset loading state on route change
+  useEffect(() => {
+    setIsLoading(false);
+  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -80,11 +91,11 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <ScrollToTop />
-              <MainLayout> {/* Wrap Routes with MainLayout */}
+              <MainLayout showFooter={!isLoading}>
                 <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/category/:slug" element={<CategoryPage />} />
-                  <Route path="/article/:id" element={<ArticlePage />} />
+                  <Route path="/" element={<Index setIsLoading={setIsLoading} />} />
+                  <Route path="/category/:slug" element={<CategoryPage setIsLoading={setIsLoading} />} />
+                  <Route path="/article/:id" element={<ArticlePage setIsLoading={setIsLoading} />} />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/admin/login" element={<AdminLogin />} />

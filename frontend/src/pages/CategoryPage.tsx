@@ -1,26 +1,31 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import NewsCard from '@/components/news/NewsCard';
 import Advertisement from '@/components/common/Advertisement';
 import Sidebar from '@/components/news/Sidebar';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useCategoryArticles, useCategories } from '@/hooks/useNewsData';
 
-const CategoryPage: React.FC = () => {
+interface CategoryPageProps {
+  setIsLoading: (loading: boolean) => void;
+}
+
+const CategoryPage: React.FC<CategoryPageProps> = ({ setIsLoading }) => {
   const { slug } = useParams<{ slug: string }>();
   const { data: categories, isLoading: categoriesLoading, error: categoriesError } = useCategories();
 
-  // Find the category by matching the slug
   const category = categories?.find(cat => cat.path.toLowerCase() === `/category/${slug?.toLowerCase()}`);
   const categoryName = category ? category.name : (slug ? slug.replace(/-/g, ' ').replace(/\b\w/g, char => char.toUpperCase()) : '');
 
   const { data: articles, isLoading, error } = useCategoryArticles(categoryName, 12);
 
-  // Sort articles by date in descending order (latest first)
+  useEffect(() => {
+    setIsLoading(categoriesLoading || isLoading);
+  }, [categoriesLoading, isLoading, setIsLoading]);
+
   const sortedArticles = articles ? [...articles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) : [];
 
   if (categoriesLoading || isLoading) {
-    return null; // Render nothing during loading to hide content and footer
+    return null;
   }
 
   if (categoriesError) {

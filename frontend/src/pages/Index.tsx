@@ -13,7 +13,6 @@ import {
 } from '@/hooks/useNewsData';
 import { useQueryClient } from '@tanstack/react-query';
 
-// Custom PrefetchLink component to prefetch article data on hover
 interface PrefetchLinkProps extends LinkProps {
   articleId: string;
 }
@@ -29,21 +28,28 @@ const PrefetchLink = forwardRef<HTMLAnchorElement, PrefetchLinkProps>(({ article
         if (!response.ok) throw new Error('Failed to fetch article');
         return response.json();
       },
-      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+      staleTime: 5 * 60 * 1000,
     });
   };
 
   return <Link {...props} ref={ref} onMouseEnter={handleMouseEnter} />;
 });
 
-const Index: React.FC = () => {
+interface IndexProps {
+  setIsLoading: (loading: boolean) => void;
+}
+
+const Index: React.FC<IndexProps> = ({ setIsLoading }) => {
   const { data: breakingNewsData, isLoading: isLoadingBreaking, error: breakingError } = useBreakingNews();
   const { data: featuredArticlesData, isLoading: isLoadingFeatured, error: featuredError } = useFeaturedArticles();
   const { data: categories, isLoading: categoriesLoading, error: categoriesError } = useCategories();
   const { data: categoryArticlesData, isLoading: categoryArticlesLoading, error: categoryArticlesError } = useAllCategoryArticles(categories || [], 5);
 
-  // Combine all loading states into one
   const isLoading = isLoadingBreaking || isLoadingFeatured || categoriesLoading || categoryArticlesLoading;
+
+  useEffect(() => {
+    setIsLoading(isLoading);
+  }, [isLoading, setIsLoading]);
 
   useEffect(() => {
     console.log('Index: breakingNewsData:', breakingNewsData);

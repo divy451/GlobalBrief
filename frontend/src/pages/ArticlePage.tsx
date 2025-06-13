@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Advertisement from '@/components/common/Advertisement';
 import Sidebar from '@/components/news/Sidebar';
@@ -6,12 +6,20 @@ import ShareButtons from '@/components/news/ShareButtons';
 import { formatDate } from '@/utils/formatDate';
 import { useArticleById } from '@/hooks/useNewsData';
 
-const ArticlePage: React.FC = () => {
+interface ArticlePageProps {
+  setIsLoading: (loading: boolean) => void;
+}
+
+const ArticlePage: React.FC<ArticlePageProps> = ({ setIsLoading }) => {
   const { id } = useParams<{ id: string }>();
   const { data: article, isLoading, error } = useArticleById(id!);
 
+  useEffect(() => {
+    setIsLoading(isLoading);
+  }, [isLoading, setIsLoading]);
+
   if (isLoading) {
-    return null; // Render nothing during loading to hide content and footer
+    return null;
   }
 
   if (error || !article) {
@@ -24,7 +32,6 @@ const ArticlePage: React.FC = () => {
     );
   }
 
-  // Debug log to inspect the article object
   console.log('ArticlePage: Fetched article:', article);
 
   return (
