@@ -18,7 +18,7 @@ const Index: React.FC = () => {
   const { data: categories, isLoading: categoriesLoading, error: categoriesError } = useCategories();
   const { data: categoryArticlesData, isLoading: categoryArticlesLoading, error: categoryArticlesError } = useAllCategoryArticles(categories || [], 5);
 
-  // Combine all loading states into one
+  // Combine all loading states into one (still calculated for logging/debugging)
   const isLoading = isLoadingBreaking || isLoadingFeatured || categoriesLoading || categoryArticlesLoading;
 
   useEffect(() => {
@@ -48,11 +48,12 @@ const Index: React.FC = () => {
 
   return (
     <MainLayout>
-      {isLoading ? (
+      {/* Temporarily removed loader to test loading speed */}
+      {/* {isLoading ? (
         <div className="fixed inset-0 flex justify-center items-center bg-white dark:bg-gray-800 z-50">
           <span className="loader"></span>
         </div>
-      ) : (
+      ) : ( */}
         <>
           {breakingError ? (
             <section className="mb-8 p-4 border border-red-200 rounded-lg bg-white">
@@ -130,7 +131,7 @@ const Index: React.FC = () => {
             </div>
           </div>
         </>
-      )}
+      {/* )} */}
     </MainLayout>
   );
 };
