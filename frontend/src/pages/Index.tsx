@@ -50,17 +50,7 @@ const Index: React.FC = () => {
     <MainLayout>
       {isLoading ? (
         <div className="fixed inset-0 flex justify-center items-center bg-white dark:bg-gray-800 z-50">
-          <div className="flipping">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-          </div>
+          <span className="loader"></span>
         </div>
       ) : (
         <>

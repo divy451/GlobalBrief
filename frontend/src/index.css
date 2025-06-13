@@ -225,67 +225,35 @@
   display: none;
 }
 
-/* Flipping loader styles */
-.flipping {
-   width: 53.76px; /* Reduced from 67.2px by 20% */
-   height: 53.76px; /* Reduced from 67.2px by 20% */
-   display: grid;
-   grid-template-columns: repeat(3, 1fr);
-   grid-template-rows: repeat(3, 1fr);
+/* Loader styles */
+.loader {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    background-color: rgba(0, 0, 0, 0.5);
+    transform: rotate(45deg);
+    overflow: hidden;
 }
-
-.flipping div {
-   animation: flipping-18i5bq 1.5s calc(var(--delay) * 1s) infinite backwards;
-   background-color: #ff2f4e;
+.loader:after {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    margin: auto;
+    background: #222b32;
 }
-
-.flipping div:nth-child(1) {
-   --delay: 0.1;
+.loader:before {
+    content: '';
+    position: absolute;
+    inset: -15px;
+    margin: auto;
+    background: #de3500;
+    animation: diamondLoader 2s linear infinite;
 }
-
-.flipping div:nth-child(2) {
-   --delay: 0.2;
-}
-
-.flipping div:nth-child(3) {
-   --delay: 0.3;
-}
-
-.flipping div:nth-child(4) {
-   --delay: 0.4;
-}
-
-.flipping div:nth-child(5) {
-   --delay: 0.5;
-}
-
-.flipping div:nth-child(6) {
-   --delay: 0.6;
-}
-
-.flipping div:nth-child(7) {
-   --delay: 0.7;
-}
-
-.flipping div:nth-child(8) {
-   --delay: 0.8;
-}
-
-.flipping div:nth-child(9) {
-   --delay: 0.9;
-}
-
-@keyframes flipping-18i5bq {
-   0% {
-      transform: perspective(53.76px) rotateX(-90deg); /* Reduced perspective from 67.2px by 20% */
-   }
-
-   50%, 75% {
-      transform: perspective(53.76px) rotateX(0); /* Reduced perspective from 67.2px by 20% */
-   }
-
-   100% {
-      opacity: 0;
-      transform: perspective(53.76px) rotateX(0); /* Reduced perspective from 67.2px by 20% */
-   }
+@keyframes diamondLoader {
+    0%, 10% {
+        transform: translate(-64px, -64px) rotate(-45deg);
+    }
+    90%, 100% {
+        transform: translate(0px, 0px) rotate(-45deg);
+    }
 }
