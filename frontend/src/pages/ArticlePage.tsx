@@ -12,13 +12,7 @@ const ArticlePage: React.FC = () => {
   const { data: article, isLoading, error } = useArticleById(id!);
 
   if (isLoading) {
-    return (
-      <MainLayout>
-        <div className="container py-12 text-center">
-          {null}
-        </div>
-      </MainLayout>
-    );
+    return null; // Render nothing during loading to hide the footer
   }
 
   if (error || !article) {
