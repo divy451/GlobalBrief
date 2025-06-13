@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "./hooks/useTheme";
 import { Helmet, HelmetProvider } from 'react-helmet-async';
+import MainLayout from '@/components/layout/MainLayout'; // Import MainLayout
 
 import Index from "./pages/Index";
 import CategoryPage from "./pages/CategoryPage";
@@ -79,21 +80,23 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <ScrollToTop />
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/category/:slug" element={<CategoryPage />} />
-                <Route path="/article/:id" element={<ArticlePage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/search" element={<SearchPage />} />
-                <Route element={<AdminRouteGuard />}>
-                  <Route path="/admin" element={<AdminPortal />} />
-                  <Route path="/admin/new" element={<NewArticle />} />
-                  <Route path="/admin/edit/:id" element={<EditArticle />} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <MainLayout> {/* Wrap Routes with MainLayout */}
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/category/:slug" element={<CategoryPage />} />
+                  <Route path="/article/:id" element={<ArticlePage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/admin/login" element={<AdminLogin />} />
+                  <Route path="/search" element={<SearchPage />} />
+                  <Route element={<AdminRouteGuard />}>
+                    <Route path="/admin" element={<AdminPortal />} />
+                    <Route path="/admin/new" element={<NewArticle />} />
+                    <Route path="/admin/edit/:id" element={<EditArticle />} />
+                  </Route>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </MainLayout>
             </BrowserRouter>
           </HelmetProvider>
         </TooltipProvider>

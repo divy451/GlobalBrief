@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import MainLayout from '@/components/layout/MainLayout';
+import React, { useEffect, forwardRef } from 'react';
+import { Link, LinkProps } from 'react-router-dom';
 import BreakingNews from '@/components/news/BreakingNews';
 import FeaturedNews from '@/components/news/FeaturedNews';
 import CategoryNews from '@/components/news/CategoryNews';
@@ -11,6 +11,30 @@ import {
   useCategories,
   useAllCategoryArticles 
 } from '@/hooks/useNewsData';
+import { useQueryClient } from '@tanstack/react-query';
+
+// Custom PrefetchLink component to prefetch article data on hover
+interface PrefetchLinkProps extends LinkProps {
+  articleId: string;
+}
+
+const PrefetchLink = forwardRef<HTMLAnchorElement, PrefetchLinkProps>(({ articleId, ...props }, ref) => {
+  const queryClient = useQueryClient();
+
+  const handleMouseEnter = async () => {
+    await queryClient.prefetchQuery({
+      queryKey: ['article', articleId],
+      queryFn: async () => {
+        const response = await fetch(`https://news-api.poddara766.workers.dev/article/${articleId}`);
+        if (!response.ok) throw new Error('Failed to fetch article');
+        return response.json();
+      },
+      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    });
+  };
+
+  return <Link {...props} ref={ref} onMouseEnter={handleMouseEnter} />;
+});
 
 const Index: React.FC = () => {
   const { data: breakingNewsData, isLoading: isLoadingBreaking, error: breakingError } = useBreakingNews();
@@ -47,7 +71,7 @@ const Index: React.FC = () => {
   }, [breakingNewsData, featuredArticlesData, categories, categoryArticlesData]);
 
   return (
-    <MainLayout>
+    <>
       {isLoading ? (
         <div className="fixed inset-0 flex justify-center items-center bg-white dark:bg-gray-800 z-50">
           <span className="loader"></span>
@@ -60,7 +84,7 @@ const Index: React.FC = () => {
               <p className="text-red-600 text-lg">Error loading breaking news: {breakingError.message}</p>
             </section>
           ) : breakingNewsData && breakingNewsData.length > 0 ? (
-            <BreakingNews news={breakingNewsData} />
+            <BreakingNews news={breakingNewsData} PrefetchLink={PrefetchLink} />
           ) : (
             <section className="mb-8 p-4 border border-gray-200 rounded-lg bg-white">
               <h2 className="text-2xl font-semibold mb-4">Breaking News</h2>
@@ -78,6 +102,7 @@ const Index: React.FC = () => {
               <FeaturedNews 
                 mainArticle={featuredArticlesData[0]} 
                 secondaryArticles={featuredArticlesData.slice(1)}
+                PrefetchLink={PrefetchLink}
               />
             ) : (
               <section className="mb-12 p-4 border border-red-200 rounded-lg bg-white">
@@ -108,6 +133,7 @@ const Index: React.FC = () => {
                       <CategoryNews 
                         category={{ name: category.name, path: category.path }}
                         articles={categoryArticlesData?.[category.name] || []}
+                        PrefetchLink={PrefetchLink}
                       />
                       {index % 2 === 1 && index !== categories.length - 1 && (
                         <div className="py-8 lazy-animate">
@@ -131,7 +157,7 @@ const Index: React.FC = () => {
           </div>
         </>
       )}
-    </MainLayout>
+    </>
   );
 };
 
