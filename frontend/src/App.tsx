@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "./hooks/useTheme";
 import { Helmet, HelmetProvider } from 'react-helmet-async';
-import MainLayout from '@/components/layout/MainLayout';
 
 import Index from "./pages/Index";
 import CategoryPage from "./pages/CategoryPage";
@@ -37,7 +36,7 @@ const ScrollToTop = () => {
     const shouldScrollToTop = !excludeRoutes.some(route => pathname.startsWith(route));
 
     if (shouldScrollToTop) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo(0, 0);
     }
   }, [pathname]);
 
@@ -45,49 +44,24 @@ const ScrollToTop = () => {
 };
 
 const App = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const { pathname } = useLocation();
-
   // Prefetch article data to trigger early image loading
   useEffect(() => {
     const prefetchArticles = async () => {
-      setIsLoading(true);
       try {
-        const result = await queryClient.prefetchQuery({
+        await queryClient.prefetchQuery({
           queryKey: ['articles'],
           queryFn: async () => {
             const response = await fetch('https://news-api.poddara766.workers.dev/');
             if (!response.ok) throw new Error('Failed to fetch articles');
-            const data = await response.json();
-            // Ensure data is an array; if not, return an empty array
-            return Array.isArray(data) ? data : [];
+            return response.json();
           },
         });
-
-        // Preload images from the articles
-        const fetchAndPreloadImages = (articles: any[]) => {
-          articles.forEach((article) => {
-            if (article?.image) {
-              const img = new Image();
-              img.src = article.image;
-            }
-          });
-        };
-
-        fetchAndPreloadImages(result || []);
       } catch (error) {
         console.error('Failed to prefetch articles:', error);
-      } finally {
-        setIsLoading(false);
       }
     };
     prefetchArticles();
   }, []);
-
-  // Reset loading state on route change
-  useEffect(() => {
-    setIsLoading(false);
-  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -105,23 +79,21 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <ScrollToTop />
-              <MainLayout showFooter={!isLoading}>
-                <Routes>
-                  <Route path="/" element={<Index setIsLoading={setIsLoading} />} />
-                  <Route path="/category/:slug" element={<CategoryPage setIsLoading={setIsLoading} />} />
-                  <Route path="/article/:id" element={<ArticlePage setIsLoading={setIsLoading} />} />
-                  <Route path="/about" element={<AboutPage />} />
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/admin/login" element={<AdminLogin />} />
-                  <Route path="/search" element={<SearchPage />} />
-                  <Route element={<AdminRouteGuard />}>
-                    <Route path="/admin" element={<AdminPortal />} />
-                    <Route path="/admin/new" element={<NewArticle />} />
-                    <Route path="/admin/edit/:id" element={<EditArticle />} />
-                  </Route>
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </MainLayout>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/category/:slug" element={<CategoryPage />} />
+                <Route path="/article/:id" element={<ArticlePage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route element={<AdminRouteGuard />}>
+                  <Route path="/admin" element={<AdminPortal />} />
+                  <Route path="/admin/new" element={<NewArticle />} />
+                  <Route path="/admin/edit/:id" element={<EditArticle />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
             </BrowserRouter>
           </HelmetProvider>
         </TooltipProvider>
