@@ -26,24 +26,41 @@ const ScrollToTop = () => {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    const excludeRoutes = [
-      '/admin',
-      '/admin/new',
-      '/admin/edit',
-      '/admin/login',
+    const excludeRoutesForPreservingScroll = [
+      '/admin/new', // Preserve scroll during form interactions
+      '/admin/edit', // Preserve scroll during form interactions
     ];
 
-    const shouldScrollToTop = !excludeRoutes.some(route => pathname.startsWith(route));
+    const isPreservingScroll = excludeRoutesForPreservingScroll.some(route => pathname.startsWith(route));
 
-    if (shouldScrollToTop) {
-      window.scrollTo(0, 0);
+    // Scroll to top if not in a route where scroll should be preserved
+    if (!isPreservingScroll) {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth', // Enable smooth scrolling
+      });
     }
   }, [pathname]);
 
   return null;
 };
 
+// Smooth scrolling polyfill for older browsers
+const enableSmoothScrollPolyfill = () => {
+  if (!('scrollBehavior' in document.documentElement.style)) {
+    // Dynamically import smoothscroll-polyfill for older browsers
+    import('smoothscroll-polyfill').then((module) => {
+      module.polyfill();
+    });
+  }
+};
+
 const App = () => {
+  // Apply smooth scroll polyfill on mount
+  useEffect(() => {
+    enableSmoothScrollPolyfill();
+  }, []);
+
   // Prefetch article data to trigger early image loading
   useEffect(() => {
     const prefetchArticles = async () => {
